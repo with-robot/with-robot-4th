@@ -1,0 +1,48 @@
+Fri Nov 21 09:54:59 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 0.2080.
+
+Fri Nov 21 09:56:24 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+
+Fri Nov 21 10:03:15 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+
+Fri Nov 21 10:09:37 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+
+Fri Nov 21 10:12:53 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+
+Fri Nov 21 12:40:08 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+
+Fri Nov 21 12:47:41 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+
+Fri Nov 21 12:49:58 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+
+Fri Nov 21 15:45:20 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+
+Fri Nov 21 15:48:44 2025
+ERROR: mj_copyDataVisual: attempting to copy mjData while stack is in use
+
+Fri Nov 21 15:51:31 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+
+Fri Nov 21 15:52:14 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+
+Fri Nov 21 15:55:03 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+
+Fri Nov 21 15:58:00 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+
+Fri Nov 21 16:03:20 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+
+Fri Nov 21 16:14:39 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 104. The simulation is unstable. Time = 1.2200.
+

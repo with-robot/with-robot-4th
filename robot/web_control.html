@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 로봇 제어판</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 20px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-up { grid-column: 2; background: #4CAF50; color: white; }
+        .btn-left { grid-column: 1; grid-row: 2; background: #2196F3; color: white; }
+        .btn-stop { grid-column: 2; grid-row: 2; background: #f44336; color: white; }
+        .btn-right { grid-column: 3; grid-row: 2; background: #2196F3; color: white; }
+        .btn-down { grid-column: 2; grid-row: 3; background: #4CAF50; color: white; }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .btn-action {
+            background: #FF9800;
+            color: white;
+            padding: 15px;
+        }
+        .status {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
+        .log-entry {
+            margin: 2px 0;
+        }
+        .coordinates {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        input {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        .btn-go {
+            grid-column: span 3;
+            background: #9C27B0;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 로봇 제어판</h1>
+
+        <div class="status">
+            <div>📡 상태: <span id="status">연결 확인 중...</span></div>
+            <div>📍 목표 위치: X=<span id="x">0.00</span>m, Y=<span id="y">0.00</span>m, θ=<span id="theta">0.00</span>rad</div>
+            <div class="log" id="log"></div>
+        </div>
+
+        <h3>방향 제어</h3>
+        <div class="control-grid">
+            <button class="btn-up" onclick="move('forward')">⬆️<br>앞으로</button>
+            <button class="btn-left" onclick="move('left')">⬅️<br>좌회전</button>
+            <button class="btn-stop" onclick="move('home')">🏠<br>원점</button>
+            <button class="btn-right" onclick="move('right')">➡️<br>우회전</button>
+            <button class="btn-down" onclick="move('backward')">⬇️<br>뒤로</button>
+        </div>
+
+        <h3>빠른 동작</h3>
+        <div class="action-buttons">
+            <button class="btn-action" onclick="pattern('square')">🔲 사각형</button>
+            <button class="btn-action" onclick="pattern('triangle')">🔺 삼각형</button>
+            <button class="btn-action" onclick="pattern('rotate')">🔄 회전</button>
+            <button class="btn-action" onclick="pattern('test')">🧪 테스트</button>
+        </div>
+
+        <h3>좌표 이동</h3>
+        <div class="coordinates">
+            <input type="number" id="input-x" placeholder="X" step="0.1" value="1.0">
+            <input type="number" id="input-y" placeholder="Y" step="0.1" value="0.0">
+            <input type="number" id="input-theta" placeholder="θ (rad)" step="0.1" value="0">
+            <button class="btn-go" onclick="moveToCoords()">🎯 이동하기</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8800/send_action';
+        let currentX = 0, currentY = 0, currentTheta = 0;
+        const STEP = 0.5;
+        const ROTATE = Math.PI / 2;
+
+        // 로그 추가
+        function addLog(message) {
+            const logEl = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${message}`;
+            logEl.insertBefore(entry, logEl.firstChild);
+
+            // 최대 20개까지만 유지
+            while (logEl.children.length > 20) {
+                logEl.removeChild(logEl.lastChild);
+            }
+        }
+
+        // 서버 연결 확인
+        async function checkStatus() {
+            try {
+                const response = await fetch('http://localhost:8800/');
+                if (response.ok) {
+                    document.getElementById('status').textContent = '✅ 연결됨';
+                    document.getElementById('status').style.color = 'green';
+                    addLog('서버 연결 확인됨');
+                } else {
+                    document.getElementById('status').textContent = '❌ 오류';
+                    document.getElementById('status').style.color = 'red';
+                }
+            } catch {
+                document.getElementById('status').textContent = '❌ 연결 안됨';
+                document.getElementById('status').style.color = 'red';
+                addLog('서버 연결 실패!');
+            }
+        }
+
+        // 명령 전송
+        async function sendCommand(code, description) {
+            addLog(`📤 전송: ${description}`);
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: {
+                            type: 'run_code',
+                            payload: { code: code }
+                        }
+                    })
+                });
+                if (response.ok) {
+                    addLog(`✅ 성공: ${description}`);
+                    return true;
+                } else {
+                    addLog(`❌ 실패: ${description}`);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addLog(`❌ 오류: ${error.message}`);
+                alert('❌ 명령 전송 실패! 시뮬레이터가 실행 중인지 확인하세요.');
+                return false;
+            }
+        }
+
+        // 위치 업데이트
+        function updatePosition(x, y, theta) {
+            currentX = x;
+            currentY = y;
+            currentTheta = theta;
+            document.getElementById('x').textContent = x.toFixed(2);
+            document.getElementById('y').textContent = y.toFixed(2);
+            document.getElementById('theta').textContent = theta.toFixed(2);
+        }
+
+        // 방향 제어
+        async function move(direction) {
+            let x = currentX, y = currentY, theta = currentTheta;
+            let desc = '';
+
+            switch(direction) {
+                case 'forward':
+                    x += STEP * Math.cos(theta);
+                    y += STEP * Math.sin(theta);
+                    desc = `앞으로 ${STEP}m`;
+                    break;
+                case 'backward':
+                    x -= STEP * Math.cos(theta);
+                    y -= STEP * Math.sin(theta);
+                    desc = `뒤로 ${STEP}m`;
+                    break;
+                case 'left':
+                    theta += ROTATE;
+                    desc = '좌회전 90°';
+                    break;
+                case 'right':
+                    theta -= ROTATE;
+                    desc = '우회전 90°';
+                    break;
+                case 'home':
+                    x = y = theta = 0;
+                    desc = '원점 복귀';
+                    break;
+            }
+
+            const code = `print("🤖 ${desc}"); set_target_position(${x.toFixed(3)}, ${y.toFixed(3)}, ${theta.toFixed(3)}, wait=True); print("✅ 도착!")`;
+            if (await sendCommand(code, desc)) {
+                updatePosition(x, y, theta);
+            }
+        }
+
+        // 패턴 동작
+        async function pattern(type) {
+            let code = '';
+            let desc = '';
+
+            switch(type) {
+                case 'square':
+                    desc = '사각형 경로';
+                    code = `
+print("🔲 사각형 시작")
+set_target_position(1, 0, 0, wait=True)
+print("  1/4 완료")
+set_target_position(1, 1, 1.57, wait=True)
+print("  2/4 완료")
+set_target_position(0, 1, 3.14, wait=True)
+print("  3/4 완료")
+set_target_position(0, 0, -1.57, wait=True)
+print("✅ 사각형 완료!")
+`;
+                    break;
+                case 'triangle':
+                    desc = '삼각형 경로';
+                    code = `
+print("🔺 삼각형 시작")
+set_target_position(1, 0, 0, wait=True)
+print("  1/3 완료")
+set_target_position(0.5, 0.866, 2.094, wait=True)
+print("  2/3 완료")
+set_target_position(0, 0, 0, wait=True)
+print("✅ 삼각형 완료!")
+`;
+                    break;
+                case 'rotate':
+                    desc = '제자리 회전';
+                    code = `
+print("🔄 회전 시작")
+for i in range(9):
+    angle = 3.14159 * i / 4
+    set_target_position(0, 0, angle, wait=True)
+    if i % 2 == 0:
+        print(f"  진행: {i}/8")
+print("✅ 회전 완료!")
+`;
+                    break;
+                case 'test':
+                    desc = '간단한 테스트';
+                    code = `
+print("🧪 테스트 시작")
+set_target_position(0.5, 0, 0, wait=True)
+print("  → 앞으로")
+set_target_position(0.5, 0.5, 1.57, wait=True)
+print("  → 왼쪽")
+set_target_position(0, 0, 0, wait=True)
+print("✅ 테스트 완료!")
+`;
+                    break;
+            }
+
+            await sendCommand(code, desc);
+            updatePosition(0, 0, 0);
+        }
+
+        // 좌표 이동
+        async function moveToCoords() {
+            const x = parseFloat(document.getElementById('input-x').value);
+            const y = parseFloat(document.getElementById('input-y').value);
+            const theta = parseFloat(document.getElementById('input-theta').value);
+
+            const code = `print("🎯 좌표 이동: (${x}, ${y}, ${theta})"); set_target_position(${x}, ${y}, ${theta}, wait=True); print("✅ 도착!")`;
+            if (await sendCommand(code, `좌표 (${x.toFixed(2)}, ${y.toFixed(2)}, ${theta.toFixed(2)})`)) {
+                updatePosition(x, y, theta);
+            }
+        }
+
+        // 키보드 단축키
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return; // 입력 필드에서는 무시
+
+            switch(e.key) {
+                case 'ArrowUp': move('forward'); e.preventDefault(); break;
+                case 'ArrowDown': move('backward'); e.preventDefault(); break;
+                case 'ArrowLeft': move('left'); e.preventDefault(); break;
+                case 'ArrowRight': move('right'); e.preventDefault(); break;
+                case 'h': case 'H': move('home'); break;
+            }
+        });
+
+        // 초기화
+        addLog('🚀 웹 제어판 시작');
+        checkStatus();
+        setInterval(checkStatus, 5000);
+    </script>
+</body>
+</html>

@@ -5,6 +5,7 @@ import threading
 import uvicorn
 from fastapi import FastAPI, Response, status
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from simulator import MujocoSimulator
 import code_repository
 
@@ -19,6 +20,15 @@ app = FastAPI(
     title="MuJoCo Robot Simulator API",
     description="Control Panda-Omron mobile robot via REST API",
     version=VERSION
+)
+
+# Add CORS middleware to allow browser access
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
 )
 
 # Create simulator instance and inject into code_repository
@@ -38,7 +48,7 @@ def process_actions():
             action = actions_queue.get(timeout=0.1)
             action = action["action"]
 
-            print(f"\n{"="*60}")
+            print(f"\n{'='*60}")
             print(f"Received Action:", action)
 
             # Execute code action in sandboxed environment
@@ -55,7 +65,7 @@ def process_actions():
                     import traceback
                     print(f"\n[TRACEBACK]")
                     traceback.print_exc()
-            print(f"{"="*60}\n")
+            print(f"{'='*60}\n")
 
             actions_queue.task_done()
 
@@ -119,12 +129,12 @@ def main():
     threading.Thread(target=process_actions, daemon=True).start()
 
     # Display startup information
-    print(f"\n{"="*60}")
+    print(f"\n{'='*60}")
     print(f"MuJoCo Robot Simulator API")
-    print(f"{"="*60}")
+    print(f"{'='*60}")
     print(f"Server: http://{HOST}:{PORT}")
     print(f"API docs: http://{HOST}:{PORT}/docs")
-    print(f"{"="*60}\n")
+    print(f"{'='*60}\n")
 
     # Start FastAPI server (blocking call)
     uvicorn.run(app, host=HOST, port=PORT, log_level="info")
