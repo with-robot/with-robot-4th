@@ -1,0 +1,155 @@
+<!--
+  =========================================================================
+  MuJoCo Model: Kitchen Environment Scene
+  =========================================================================
+
+  This XML file defines a minimal kitchen environment with:
+  - Walls (front, back, left with backing layers)
+  - Floor (with backing layer)
+  - Outlets (2 wall outlets)
+  - Light switches (2 switches)
+
+  Robot can be included via: <include file="robots/panda_omron.xml"/>
+
+  =========================================================================
+-->
+<mujoco model="base">
+
+  <!-- ====================================================================== -->
+  <!-- COMPILER: Compiler Options                                            -->
+  <!-- ====================================================================== -->
+  <compiler angle="radian" meshdir="."/>
+
+  <!-- ====================================================================== -->
+  <!-- OPTION: Physics Simulation Parameters                                 -->
+  <!-- ====================================================================== -->
+  <option impratio="20" density="1.2" viscosity="2e-05" cone="elliptic"/>
+
+  <!-- ====================================================================== -->
+  <!-- SIZE: Simulation Memory Allocation                                    -->
+  <!-- ====================================================================== -->
+  <size njmax="5000" nconmax="5000"/>
+
+  <!-- ====================================================================== -->
+  <!-- VISUAL: Visualization Rendering Options                               -->
+  <!-- ====================================================================== -->
+  <visual>
+    <map znear="0.001"/>
+  </visual>
+
+  <!-- ====================================================================== -->
+  <!-- ASSET: Visual Resources (Textures, Materials, Meshes)                -->
+  <!-- ====================================================================== -->
+  <asset>
+    <!-- Skybox -->
+    <texture type="skybox" colorspace="auto" builtin="flat" rgb1="1 1 1" rgb2="1 1 1" width="256" height="1536"/>
+
+    <!-- Environment Textures -->
+    <texture type="2d" colorspace="linear" name="wall_room_wall" file="assets/textures/marble/marble_2.png"/>
+    <texture type="2d" colorspace="linear" name="wall_backing_room_wall" file="assets/textures/flat/light_gray.png"/>
+    <texture type="2d" colorspace="linear" name="wall_left_room_wall" file="assets/textures/marble/marble_2.png"/>
+    <texture type="2d" colorspace="linear" name="wall_left_backing_room_wall" file="assets/textures/flat/light_gray.png"/>
+    <texture type="2d" colorspace="linear" name="floor_room_wall" file="assets/textures/wood/light_wood_planks_2.png"/>
+    <texture type="2d" colorspace="linear" name="floor_backing_room_wall" file="assets/textures/flat/light_gray.png"/>
+
+    <!-- Outlet Textures -->
+    <texture type="2d" colorspace="linear" name="outlet_room_tex-outlet" file="assets/fixtures/accessories/outlets/simple_white/visuals/material_0.png"/>
+    <texture type="2d" colorspace="linear" name="outlet_2_room_tex-outlet" file="assets/fixtures/accessories/outlets/simple_white/visuals/material_0.png"/>
+
+    <!-- Light Switch Textures -->
+    <texture type="2d" colorspace="linear" name="light_switch_room_image0" file="assets/fixtures/accessories/light_switches/white_wide_switch/visuals/image0.png"/>
+    <texture type="2d" colorspace="linear" name="light_switch_2_room_image0" file="assets/fixtures/accessories/light_switches/white_wide_switch/visuals/image0.png"/>
+
+    <!-- Materials -->
+    <material name="wall_room_wall_mat" texture="wall_room_wall" texuniform="true" texrepeat="0.75 0.75" shininess="0.01" reflectance="0.1"/>
+    <material name="wall_backing_room_wall_mat" texture="wall_backing_room_wall" texuniform="true" texrepeat="0.75 0.75" shininess="0.01" reflectance="0.1"/>
+    <material name="wall_left_room_wall_mat" texture="wall_left_room_wall" texuniform="true" texrepeat="0.75 0.75" shininess="0.01" reflectance="0.1"/>
+    <material name="wall_left_backing_room_wall_mat" texture="wall_left_backing_room_wall" texuniform="true" texrepeat="0.75 0.75" shininess="0.01" reflectance="0.1"/>
+    <material name="floor_room_wall_mat" texture="floor_room_wall" texuniform="true"/>
+    <material name="floor_backing_room_wall_mat" texture="floor_backing_room_wall" texuniform="true"/>
+    <material name="outlet_room_outlet" texture="outlet_room_tex-outlet" reflectance="0.5"/>
+    <material name="outlet_2_room_outlet" texture="outlet_2_room_tex-outlet" reflectance="0.5"/>
+    <material name="light_switch_room_lightswitch" texture="light_switch_room_image0" shininess="0.25"/>
+    <material name="light_switch_2_room_lightswitch" texture="light_switch_2_room_image0" shininess="0.25"/>
+
+    <!-- Meshes -->
+    <mesh name="outlet_room_outlet_0_vis" file="assets/fixtures/accessories/outlets/simple_white/visuals/outlet_0.obj" inertia="shell" scale="0.15 0.15 0.15"/>
+    <mesh name="outlet_2_room_outlet_0_vis" file="assets/fixtures/accessories/outlets/simple_white/visuals/outlet_0.obj" inertia="shell" scale="0.15 0.15 0.15"/>
+    <mesh name="light_switch_room_light_switch_0_vis" file="assets/fixtures/accessories/light_switches/white_wide_switch/visuals/light_switch_0.obj" inertia="shell" scale="0.15 0.15 0.15"/>
+    <mesh name="light_switch_2_room_light_switch_0_vis" file="assets/fixtures/accessories/light_switches/white_wide_switch/visuals/light_switch_0.obj" inertia="shell" scale="0.15 0.15 0.15"/>
+  </asset>
+
+  <!-- ====================================================================== -->
+  <!-- WORLDBODY: Physical World Definition (Robot, Environment, Objects)   -->
+  <!-- ====================================================================== -->
+  <worldbody>
+    <!-- Lighting: Directional Light -->
+    <light pos="2 -2 2" dir="0.009999 0.009999 -0.9999" type="directional" castshadow="false" ambient="0.3 0.3 0.3" diffuse="0.3 0.3 0.3"/>
+    <body name="left_eef_target" pos="0 0 -1" mocap="true">
+      <geom name="left_eef_target_box" size="0.05 0.05 0.05" type="box" contype="0" conaffinity="0" group="2" rgba="0.898 0.42 0.435 0.5"/>
+      <geom name="left_eef_target_sphere" size="0.01" contype="0" conaffinity="0" group="2" rgba="0.898 0.42 0.435 0.8"/>
+    </body>
+    <body name="right_eef_target" pos="0 0 -1" mocap="true">
+      <geom name="right_eef_target_box" size="0.05 0.05 0.05" type="box" contype="0" conaffinity="0" group="2" rgba="0.208 0.314 0.439 0.5"/>
+      <geom name="right_eef_target_sphere" size="0.01" contype="0" conaffinity="0" group="2" rgba="0.208 0.314 0.439 0.8"/>
+    </body>
+
+    <!-- Environment: Walls, Floor, and Room Structure -->
+    <body name="wall_room_main" pos="2.6 0.02 1.5" quat="-0.707107 0.707107 0 0">
+      <geom name="wall_room_g0" size="2.64 1.5 0.02" type="box" rgba="0.5 0 0 1"/>
+      <geom name="wall_room_g0_vis" size="2.64 1.5 0.02" type="box" contype="0" conaffinity="0" group="1" material="wall_room_wall_mat"/>
+      <site name="wall_room_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 -1"/>
+    </body>
+    <body name="wall_backing_room_main" pos="2.5 0.14 1.38" quat="-0.707107 0.707107 0 0">
+      <geom name="wall_backing_room_g0" size="2.74 1.62 0.1" type="box" rgba="0.5 0 0 1"/>
+      <geom name="wall_backing_room_g0_vis" size="2.74 1.62 0.1" type="box" contype="0" conaffinity="0" group="1" material="wall_backing_room_wall_mat"/>
+      <site name="wall_backing_room_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 -1"/>
+    </body>
+    <body name="wall_left_room_main" pos="-0.02 -2.95 1.5" quat="0.5 0.5 -0.5 -0.5">
+      <geom name="wall_left_room_g0" size="2.99 1.5 0.02" type="box" rgba="0.5 0 0 1"/>
+      <geom name="wall_left_room_g0_vis" size="2.99 1.5 0.02" type="box" contype="0" conaffinity="0" group="1" material="wall_left_room_wall_mat"/>
+      <site name="wall_left_room_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 -1"/>
+    </body>
+    <body name="wall_left_backing_room_main" pos="-0.14 -2.95 1.38" quat="0.5 0.5 -0.5 -0.5">
+      <geom name="wall_left_backing_room_g0" size="2.99 1.62 0.1" type="box" rgba="0.5 0 0 1"/>
+      <geom name="wall_left_backing_room_g0_vis" size="2.99 1.62 0.1" type="box" contype="0" conaffinity="0" group="1" material="wall_left_backing_room_wall_mat"/>
+      <site name="wall_left_backing_room_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 -1"/>
+    </body>
+    <body name="outlet_room_main" pos="2.9 0 1.2">
+      <geom name="outlet_room_g0" type="mesh" contype="0" conaffinity="0" group="1" friction="0.95 0.3 0.1" solref="0.001" solimp="0.998 0.998" material="outlet_room_outlet" mesh="outlet_room_outlet_0_vis"/>
+      <site name="outlet_room_default_site" pos="0 0 0" size="0.0003" rgba="1 0 0 0"/>
+    </body>
+    <body name="outlet_2_room_main" pos="0 -1 1.2" quat="0.707105 0 0 0.707108">
+      <geom name="outlet_2_room_g0" type="mesh" contype="0" conaffinity="0" group="1" friction="0.95 0.3 0.1" solref="0.001" solimp="0.998 0.998" material="outlet_2_room_outlet" mesh="outlet_2_room_outlet_0_vis"/>
+      <site name="outlet_2_room_default_site" pos="0 0 0" size="0.0003" rgba="1 0 0 0"/>
+    </body>
+    <body name="light_switch_room_main" pos="3.3 0 1.2" quat="0.707388 0 0 -0.706825">
+      <geom name="light_switch_room_g0" type="mesh" contype="0" conaffinity="0" group="1" friction="0.95 0.3 0.1" solref="0.001" solimp="0.998 0.998" material="light_switch_room_lightswitch" mesh="light_switch_room_light_switch_0_vis"/>
+      <site name="light_switch_room_default_site" pos="0 0 0" size="0.0003" rgba="1 0 0 0"/>
+    </body>
+    <body name="light_switch_2_room_main" pos="3.4 0 1.2" quat="0.707388 0 0 -0.706825">
+      <geom name="light_switch_2_room_g0" type="mesh" contype="0" conaffinity="0" group="1" friction="0.95 0.3 0.1" solref="0.001" solimp="0.998 0.998" material="light_switch_2_room_lightswitch" mesh="light_switch_2_room_light_switch_0_vis"/>
+      <site name="light_switch_2_room_default_site" pos="0 0 0" size="0.0003" rgba="1 0 0 0"/>
+    </body>
+    <body name="floor_room_main" pos="2.6 -2.95 -0.02" quat="0.707107 0 0 0.707107">
+      <geom name="floor_room_g0" size="2.99 2.64 0.02" type="box" rgba="0.5 0 0 1"/>
+      <geom name="floor_room_g0_vis" size="2.99 2.64 0.02" type="box" contype="0" conaffinity="0" group="1" material="floor_room_wall_mat"/>
+      <site name="floor_room_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 -1"/>
+    </body>
+    <body name="floor_backing_room_main" pos="2.6 -2.95 -0.14" quat="0.707107 0 0 0.707107">
+      <geom name="floor_backing_room_g0" size="2.99 2.64 0.1" type="box" rgba="0.5 0 0 1"/>
+      <geom name="floor_backing_room_g0_vis" size="2.99 2.64 0.1" type="box" contype="0" conaffinity="0" group="1" material="floor_backing_room_wall_mat"/>
+      <site name="floor_backing_room_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 -1"/>
+    </body>
+  </worldbody>
+
+  <!-- Kitchen Fixtures: Counters, Cabinets, and Appliances -->
+  <include file="fixtures.xml"/>
+  
+  <!-- Robot System: Panda-Omron Mobile Manipulator -->
+  <include file="panda_omron.xml"/>
+  
+  <!-- Movable Objects: Mug, Fork, Bagged Food -->
+  <include file="objects.xml"/>
+
+</mujoco>

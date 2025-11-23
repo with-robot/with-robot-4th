@@ -1,103 +1,11 @@
-<!--
-  =========================================================================
-  MuJoCo Model: Panda-Omron Mobile Manipulator in Kitchen Environment
-  =========================================================================
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="panda_omron">
+  <!-- ====================================================================== -->
+  <!-- Panda-Omron Mobile Manipulator Robot Definition                      -->
+  <!-- ====================================================================== -->
 
-  This XML file defines a Panda robot arm with Omron mobile base
-  operating in a kitchen environment. Main components:
-
-  1. Robot Arm: Franka Emika Panda (7-DOF manipulator)
-  2. Mobile Base: Omron mobile platform (x, y, theta control)
-  3. Gripper: 2-finger parallel gripper
-  4. Environment: Kitchen fixtures and objects (fridge, oven, sink, etc.)
-
-  =========================================================================
--->
-<mujoco model="base">
-
-  <!-- ====================================================================== -->
-  <!-- COMPILER: Compiler Options                                            -->
-  <!-- ====================================================================== -->
-  <!--
-    angle="radian": Use radians for angles (instead of degrees)
-    meshdir=".": Directory path where mesh files are located
-  -->
-  <compiler angle="radian" meshdir="."/>
-
-  <!-- ====================================================================== -->
-  <!-- OPTION: Physics Simulation Parameters                                 -->
-  <!-- ====================================================================== -->
-  <!--
-    impratio="20": Impedance ratio (impact response ratio)
-    density="1.2": Air density (kg/m³) - slightly higher than default
-    viscosity="2e-05": Air viscosity (Pa·s)
-    cone="elliptic": Friction cone type (elliptic - more accurate friction model)
-  -->
-  <option impratio="20" density="1.2" viscosity="2e-05" cone="elliptic"/>
-
-  <!-- ====================================================================== -->
-  <!-- SIZE: Simulation Memory Allocation                                    -->
-  <!-- ====================================================================== -->
-  <!--
-    njmax="5000": Maximum number of joints/constraints
-    nconmax="5000": Maximum number of contact points (needed for complex environments)
-  -->
-  <size njmax="5000" nconmax="5000"/>
-
-  <!-- ====================================================================== -->
-  <!-- VISUAL: Visualization Rendering Options                               -->
-  <!-- ====================================================================== -->
-  <!--
-    znear="0.001": Camera near clipping plane (renders very close objects)
-  -->
-  <visual>
-    <map znear="0.001"/>
-  </visual>
-
-  <!-- ====================================================================== -->
-  <!-- ASSET: Visual Resources (Textures, Materials, Meshes)                -->
-  <!-- ====================================================================== -->
-  <!--
-    This section defines visual elements for the robot and environment:
-    - Textures: Surface images (walls, floors, furniture, etc.)
-    - Materials: Material properties (color, reflectance, shininess, etc.)
-    - Meshes: 3D model files (robot links, gripper, kitchen appliances, etc.)
-
-    Components:
-    1. Environment textures (walls, floors, windows, etc.)
-    2. Fixture textures (fridge, oven, sink, hood, etc.)
-    3. Robot meshes (Panda arm, Omron base, Gripper)
-    4. Object meshes (forks, utensils, food, etc.)
-  -->
   <asset>
-    <!-- Skybox: Background sky texture -->
-    <texture type="skybox" colorspace="auto" builtin="flat" rgb1="1 1 1" rgb2="1 1 1" width="256" height="1536"/>
-
-    <!-- Common textures used by general cabinets and fixtures -->
-    <texture type="2d" colorspace="linear" name="flat/white_2d" file="assets/textures/flat/white.png"/>
-    <texture type="cube" colorspace="linear" name="flat/blue_gray" file="assets/textures/flat/blue_gray.png"/>
-    <texture type="2d" colorspace="linear" name="flat/blue_gray_2d" file="assets/textures/flat/blue_gray.png"/>
-    <texture type="cube" colorspace="linear" name="flat/dark_gray" file="assets/textures/flat/dark_gray.png"/>
-    <texture type="cube" colorspace="linear" name="box" file="assets/textures/flat/blue_gray.png"/>
-    <texture type="2d" colorspace="linear" name="tex_2d" file="assets/textures/ceramic.png"/>
-    <texture type="2d" colorspace="linear" name="wood/light_wood_parquet_2d" file="assets/textures/wood/light_wood_parquet.png"/>
-
-    <texture type="2d" colorspace="linear" name="wall_room_wall" file="assets/textures/marble/marble_2.png"/>
-    <texture type="2d" colorspace="linear" name="wall_backing_room_wall" file="assets/textures/flat/light_gray.png"/>
-    <texture type="2d" colorspace="linear" name="wall_left_room_wall" file="assets/textures/marble/marble_2.png"/>
-    <texture type="2d" colorspace="linear" name="wall_left_backing_room_wall" file="assets/textures/flat/light_gray.png"/>
-    <texture type="2d" colorspace="linear" name="outlet_room_tex-outlet" file="assets/fixtures/accessories/outlets/simple_white/visuals/material_0.png"/>
-    <texture type="2d" colorspace="linear" name="outlet_room_image0" file="assets/fixtures/accessories/outlets/simple_white/visuals/image0.png"/>
-    <texture type="2d" colorspace="linear" name="outlet_2_room_tex-outlet" file="assets/fixtures/accessories/outlets/simple_white/visuals/material_0.png"/>
-    <texture type="2d" colorspace="linear" name="outlet_2_room_image0" file="assets/fixtures/accessories/outlets/simple_white/visuals/image0.png"/>
-    <texture type="2d" colorspace="linear" name="light_switch_room_tex-light_switch" file="assets/fixtures/accessories/light_switches/white_wide_switch/visuals/material_0.png"/>
-    <texture type="2d" colorspace="linear" name="light_switch_room_image0" file="assets/fixtures/accessories/light_switches/white_wide_switch/visuals/image0.png"/>
-    <texture type="2d" colorspace="linear" name="light_switch_2_room_tex-light_switch" file="assets/fixtures/accessories/light_switches/white_wide_switch/visuals/material_0.png"/>
-    <texture type="2d" colorspace="linear" name="light_switch_2_room_image0" file="assets/fixtures/accessories/light_switches/white_wide_switch/visuals/image0.png"/>
-    <texture type="2d" colorspace="linear" name="floor_room_wall" file="assets/textures/wood/light_wood_planks_2.png"/>
-    <texture type="2d" colorspace="linear" name="floor_backing_room_wall" file="assets/textures/flat/light_gray.png"/>
-    <texture type="2d" colorspace="sRGB" name="window_group_left_group_panel_tex" file="assets/textures/wood/dark_wood_planks.png"/>
-    <texture type="2d" colorspace="linear" name="window_group_left_group_blurred_bak" file="assets/textures/flat/warm_white.png"/>
+    <!-- Panda Arm Materials -->
     <material name="robot0_Face636_001" shininess="0.45" rgba="0.901961 0.921569 0.929412 1"/>
     <material name="robot0_Part__Feature017_001" shininess="0.45"/>
     <material name="robot0_Part__Feature018_001" shininess="0.45"/>
@@ -148,6 +56,8 @@
     <material name="robot0_Part__Mirroring006_004_001" shininess="0.45" rgba="0.25098 0.25098 0.25098 1"/>
     <material name="robot0_Part__Mirroring007_004_001" shininess="0.45" rgba="0.25098 0.25098 0.25098 1"/>
     <material name="robot0_Part__Mirroring_004_001" shininess="0.45" rgba="0.898039 0.917647 0.929412 1"/>
+
+    <!-- Omron Mobile Base Materials -->
     <material name="mobilebase0_Opaque(128,128,128)" specular="0" shininess="0.25" rgba="0.501961 0.501961 0.501961 1"/>
     <material name="mobilebase0_Opaque(185,185,185)" specular="0" shininess="0.25" rgba="0.72549 0.72549 0.72549 1"/>
     <material name="mobilebase0_Opaque(190,190,190)" specular="0" shininess="0.25" rgba="0.745098 0.745098 0.745098 1"/>
@@ -159,100 +69,8 @@
     <material name="mobilebase0_Opaque(64,64,64)" specular="0" shininess="0.25" rgba="0.25098 0.25098 0.25098 1"/>
     <material name="mobilebase0_Steel_-_Satin" specular="0" shininess="0.25" rgba="0.627451 0.627451 0.627451 1"/>
     <material name="mobilebase0_Shell005_001_001_002_001" shininess="0.45"/>
-    <material name="wall_room_wall_mat" texture="wall_room_wall" texuniform="true" texrepeat="0.75 0.75" shininess="0.01" reflectance="0.1"/>
-    <material name="wall_backing_room_wall_mat" texture="wall_backing_room_wall" texuniform="true" texrepeat="0.75 0.75" shininess="0.01" reflectance="0.1"/>
-    <material name="wall_left_room_wall_mat" texture="wall_left_room_wall" texuniform="true" texrepeat="0.75 0.75" shininess="0.01" reflectance="0.1"/>
-    <material name="wall_left_backing_room_wall_mat" texture="wall_left_backing_room_wall" texuniform="true" texrepeat="0.75 0.75" shininess="0.01" reflectance="0.1"/>
-    <material name="outlet_room_outlet" texture="outlet_room_tex-outlet" reflectance="0.5"/>
-    <material name="outlet_2_room_outlet" texture="outlet_2_room_tex-outlet" reflectance="0.5"/>
-    <material name="light_switch_room_light_switch" texture="light_switch_room_tex-light_switch" reflectance="0.5"/>
-    <material name="light_switch_room_lightswitch" texture="light_switch_room_image0" shininess="0.25"/>
-    <material name="light_switch_2_room_light_switch" texture="light_switch_2_room_tex-light_switch" reflectance="0.5"/>
-    <material name="light_switch_2_room_lightswitch" texture="light_switch_2_room_image0" shininess="0.25"/>
-    <material name="floor_room_wall_mat" texture="floor_room_wall" texuniform="true"/>
-    <material name="floor_backing_room_wall_mat" texture="floor_backing_room_wall" texuniform="true"/>
-    
-    <material name="box_mat" texture="box" shininess="0.1"/>
-    <material name="stack_1_main_group_1_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="stack_1_main_group_1_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_1_main_group_1_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_1_main_group_2_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="stack_1_main_group_2_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_1_main_group_2_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_1_main_group_3_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="stack_1_main_group_3_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_1_main_group_3_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_1_main_group_4_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="stack_1_main_group_4_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_1_main_group_4_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_2_main_group_1_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="stack_2_main_group_1_left_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_2_main_group_1_left_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_2_main_group_1_right_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_2_main_group_1_right_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_2_main_group_2_mat" texture="flat/blue_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_2_main_group_2_mat_uniform" texture="tex_2d" texuniform="true" texrepeat="4 4" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_2_main_group_2_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_3_main_group_1_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="stack_3_main_group_1_left_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_3_main_group_1_left_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_3_main_group_1_right_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_3_main_group_1_right_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_3_main_group_2_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="stack_3_main_group_2_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_3_main_group_2_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_3_main_group_3_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="stack_3_main_group_3_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_3_main_group_3_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="cab_main_main_group_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="cab_main_main_group_left_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="cab_main_main_group_left_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="cab_main_main_group_right_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="cab_main_main_group_right_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="shelves_main_group_mat" texture="wood/light_wood_parquet_2d" shininess="0.8" reflectance="0.8"/>
-    <material name="shelves_main_group_shelf_0_mat" texture="wood/light_wood_parquet_2d" texuniform="true" texrepeat="3 3" shininess="0.1" reflectance="0.1"/>
-    <material name="shelves_main_group_shelf_1_mat" texture="wood/light_wood_parquet_2d" texuniform="true" texrepeat="3 3" shininess="0.1" reflectance="0.1"/>
-    <material name="cab_1_left_group_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="cab_1_left_group_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="cab_1_left_group_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="window_group_left_group_panel_mat" texture="window_group_left_group_panel_tex" texuniform="true" texrepeat="4 4" specular="0.1" shininess="0.1"/>
-    <material name="window_group_left_group_window_mat" texture="window_group_left_group_blurred_bak" texuniform="true" specular="0.1" shininess="0.1"/>
-    <material name="cab_2_left_group_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="cab_2_left_group_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="cab_2_left_group_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="bottom_left_group_1_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="bottom_left_group_1_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="bottom_left_group_1_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="bottom_left_group_2_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="bottom_left_group_2_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="bottom_left_group_2_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="top_left_group_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="top_left_group_left_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="top_left_group_left_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="top_left_group_right_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="top_left_group_right_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_1_left_group_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="stack_1_left_group_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_1_left_group_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_2_left_group_1_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="stack_2_left_group_1_left_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_2_left_group_1_left_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_2_left_group_1_right_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_2_left_group_1_right_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_2_left_group_2_mat" texture="flat/blue_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_2_left_group_2_mat_uniform" texture="tex_2d" texuniform="true" texrepeat="4 4" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_2_left_group_2_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_3_left_group_1_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="stack_3_left_group_1_left_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_3_left_group_1_left_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_3_left_group_1_right_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_3_left_group_1_right_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_3_left_group_2_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="stack_3_left_group_2_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_3_left_group_2_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
-    <material name="stack_3_left_group_3_mat" texture="flat/blue_gray" shininess="0.1"/>
-    <material name="stack_3_left_group_3_door_mat" texture="flat/blue_gray_2d" texuniform="true" texrepeat="4 4" shininess="0.1" reflectance="0.1"/>
-    <material name="stack_3_left_group_3_door_handle_mat" texture="flat/dark_gray" shininess="0.8" reflectance="0.8"/>
+
+    <!-- Panda Arm Meshes (Collision) -->
     <mesh name="robot0_link0" content_type="model/stl" file="assets/robots/panda/meshes/link0.stl" inertia="shell"/>
     <mesh name="robot0_link1" content_type="model/stl" file="assets/robots/panda/meshes/link1.stl" inertia="shell"/>
     <mesh name="robot0_link2" content_type="model/stl" file="assets/robots/panda/meshes/link2.stl" inertia="shell"/>
@@ -261,6 +79,8 @@
     <mesh name="robot0_link5" content_type="model/stl" file="assets/robots/panda/meshes/link5.stl" inertia="shell"/>
     <mesh name="robot0_link6" content_type="model/stl" file="assets/robots/panda/meshes/link6.stl" inertia="shell"/>
     <mesh name="robot0_link7" content_type="model/stl" file="assets/robots/panda/meshes/link7.stl" inertia="shell"/>
+
+    <!-- Panda Arm Meshes (Visual) -->
     <mesh name="robot0_link0_vis_0" content_type="model/obj" file="assets/robots/panda/obj_meshes/link0_vis/link0_vis_0.obj" inertia="shell"/>
     <mesh name="robot0_link0_vis_1" content_type="model/obj" file="assets/robots/panda/obj_meshes/link0_vis/link0_vis_1.obj" inertia="shell"/>
     <mesh name="robot0_link0_vis_2" content_type="model/obj" file="assets/robots/panda/obj_meshes/link0_vis/link0_vis_2.obj" inertia="shell"/>
@@ -311,6 +131,8 @@
     <mesh name="robot0_link7_vis_5" content_type="model/obj" file="assets/robots/panda/obj_meshes/link7_vis/link7_vis_5.obj" inertia="shell"/>
     <mesh name="robot0_link7_vis_6" content_type="model/obj" file="assets/robots/panda/obj_meshes/link7_vis/link7_vis_6.obj" inertia="shell"/>
     <mesh name="robot0_link7_vis_7" content_type="model/obj" file="assets/robots/panda/obj_meshes/link7_vis/link7_vis_7.obj" inertia="shell"/>
+
+    <!-- Omron Mobile Base Meshes -->
     <mesh name="mobilebase0_omron_0_vis" content_type="model/obj" file="assets/bases/meshes/omron_mobile_base/omron_0.obj" inertia="shell"/>
     <mesh name="mobilebase0_omron_1_vis" content_type="model/obj" file="assets/bases/meshes/omron_mobile_base/omron_1.obj" inertia="shell"/>
     <mesh name="mobilebase0_omron_2_vis" content_type="model/obj" file="assets/bases/meshes/omron_mobile_base/omron_2.obj" inertia="shell"/>
@@ -319,137 +141,42 @@
     <mesh name="mobilebase0_omron_5_vis" content_type="model/obj" file="assets/bases/meshes/omron_mobile_base/omron_5.obj" inertia="shell"/>
     <mesh name="mobilebase0_omron_6_vis" content_type="model/obj" file="assets/bases/meshes/omron_mobile_base/omron_6.obj" inertia="shell"/>
     <mesh name="mobilebase0_omron_7_vis" content_type="model/obj" file="assets/bases/meshes/omron_mobile_base/omron_7.obj" inertia="shell"/>
+
+    <!-- Gripper Meshes -->
     <mesh name="gripper0_right_hand" content_type="model/stl" file="assets/grippers/meshes/panda_gripper/hand.stl" inertia="shell"/>
     <mesh name="gripper0_right_hand_vis" content_type="model/stl" file="assets/grippers/meshes/panda_gripper/hand_vis.stl" inertia="shell"/>
     <mesh name="gripper0_right_finger" content_type="model/stl" file="assets/grippers/meshes/panda_gripper/finger.stl" inertia="shell"/>
     <mesh name="gripper0_right_finger_vis" content_type="model/stl" file="assets/grippers/meshes/panda_gripper/finger_vis.stl" inertia="shell"/>
     <mesh name="gripper0_right_finger_vis2" content_type="model/stl" file="assets/grippers/meshes/panda_gripper/finger_longer.stl" inertia="shell"/>
-    <mesh name="outlet_room_outlet_0_vis" file="assets/fixtures/accessories/outlets/simple_white/visuals/outlet_0.obj" inertia="shell" scale="0.15 0.15 0.15"/>
-    <mesh name="outlet_2_room_outlet_0_vis" file="assets/fixtures/accessories/outlets/simple_white/visuals/outlet_0.obj" inertia="shell" scale="0.15 0.15 0.15"/>
-    <mesh name="light_switch_room_light_switch_0_vis" file="assets/fixtures/accessories/light_switches/white_wide_switch/visuals/light_switch_0.obj" inertia="shell" scale="0.15 0.15 0.15"/>
-    <mesh name="light_switch_2_room_light_switch_0_vis" file="assets/fixtures/accessories/light_switches/white_wide_switch/visuals/light_switch_0.obj" inertia="shell" scale="0.15 0.15 0.15"/>
-    
-    <include file="fixtures_asset.xml"/>
-    <include file="objects_asset.xml" />
   </asset>
 
-  <!-- ====================================================================== -->
-  <!-- WORLDBODY: Physical World Definition (Robot, Environment, Objects)   -->
-  <!-- ====================================================================== -->
-  <!--
-    This section defines all physical objects in the simulation world:
-
-    Structure (hierarchical):
-    1. Light: Lighting setup (directional light, ambient light)
-    2. Environment Bodies:
-       - Walls (wall, wall_left)
-       - Floor (floor)
-       - Windows (window)
-    3. Kitchen Fixtures:
-       - Counters (counter_main, counter_left)
-       - Refrigerator (fridge_main)
-       - Oven (oven_left)
-       - Sink (sink_main)
-       - Hood (hood_main)
-       - Appliances (toaster, coffee_machine, microwave, etc.)
-    4. Robot System (mobilebase0):
-       - Omron Mobile Base (x, y, theta joints)
-       - Torso Height Joint (height adjustment)
-       - Panda Robot Arm (7-DOF, robot0)
-         * Joint1~7: Each joint
-         * Links: Robot arm links
-       - Gripper (gripper0_right)
-         * 2-finger parallel gripper
-    5. Manipulable Objects:
-       - Forks (distr_counter)
-       - Utensils and food (distr_cab)
-
-    Important: All bodies have a hierarchical structure, with position (pos)
-               and orientation (quat) defined relative to parent body's frame.
-  -->
   <worldbody>
-    <!-- Lighting: Directional Light -->
-    <light pos="2 -2 2" dir="0.009999 0.009999 -0.9999" type="directional" castshadow="false" ambient="0.3 0.3 0.3" diffuse="0.3 0.3 0.3"/>
-    <body name="left_eef_target" pos="0 0 -1" mocap="true">
-      <geom name="left_eef_target_box" size="0.05 0.05 0.05" type="box" contype="0" conaffinity="0" group="2" rgba="0.898 0.42 0.435 0.5"/>
-      <geom name="left_eef_target_sphere" size="0.01" contype="0" conaffinity="0" group="2" rgba="0.898 0.42 0.435 0.8"/>
-    </body>
-    <body name="right_eef_target" pos="0 0 -1" mocap="true">
-      <geom name="right_eef_target_box" size="0.05 0.05 0.05" type="box" contype="0" conaffinity="0" group="2" rgba="0.208 0.314 0.439 0.5"/>
-      <geom name="right_eef_target_sphere" size="0.01" contype="0" conaffinity="0" group="2" rgba="0.208 0.314 0.439 0.8"/>
-    </body>
-    <!-- ================================================================== -->
-    <!-- ROBOT SYSTEM: Panda-Omron Mobile Manipulator                      -->
-    <!-- ================================================================== -->
-    <!--
-      Robot system base. Defines the world coordinate position of the entire robot.
-      pos="0.799997 -3.45 0": Initial position in kitchen (in meters)
-      quat: Initial orientation (quaternion)
-    -->
-    <body name="robot0_base" pos="0.799997 -3.45 0" quat="1.8366e-06 0 0 -1">
+    <body name="robot0_base">
       <inertial pos="0 0 0" mass="0" diaginertia="0 0 0"/>
       <camera name="robot0_robotview" pos="1 0 0.4" quat="0.653098 0.271041 0.271041 0.653098"/>
 
-      <!-- ============================================================== -->
-      <!-- OMRON MOBILE BASE: Mobile Platform (Holonomic Drive)          -->
-      <!-- ============================================================== -->
-      <!--
-        Holonomic drive system with independent x, y, theta control
-        - joint_mobile_forward: Y-axis movement (forward/backward)
-        - joint_mobile_side: X-axis movement (left/right)
-        - joint_mobile_yaw: Z-axis rotation (in-place rotation)
-
-        Features:
-        - type="slide": Linear movement joints (forward, side)
-        - limited="false": No movement range limit (infinite movement)
-        - frictionloss="250": Friction loss (realistic deceleration effect)
-      -->
+      <!-- Omron Mobile Base: Holonomic drive (x, y, theta control) -->
       <body name="mobilebase0_base">
-        <!-- Y-axis movement joint (forward/backward direction) -->
         <joint name="mobilebase0_joint_mobile_forward" pos="-0.21 0 0" axis="0 1 0" type="slide" limited="false" frictionloss="250"/>
-        <!-- X-axis movement joint (left/right direction) -->
         <joint name="mobilebase0_joint_mobile_side" pos="-0.21 0 0" axis="1 0 0" type="slide" limited="false" frictionloss="250"/>
-        <!-- Z-axis rotation joint (in-place rotation) -->
         <joint name="mobilebase0_joint_mobile_yaw" pos="-0.21 0 0" axis="0 0 1" limited="false" frictionloss="250"/>
-        <!-- Fixed support: Cylinder structure above mobile base -->
         <body name="mobilebase0_fixed_support" pos="-0.05 0 0.5">
           <geom name="mobilebase0_g0_col" size="0.12 0.2" type="cylinder" rgba="0.5 0.5 0 1"/>
           <geom name="mobilebase0_fixed_support" size="0.12 0.2" type="cylinder" group="1" material="mobilebase0_Shell005_001_001_002_001"/>
 
-          <!-- ======================================================== -->
-          <!-- TORSO HEIGHT JOINT: Robot Height Adjustment (Lift Joint) -->
-          <!-- ======================================================== -->
-          <!--
-            Joint for adjusting robot arm height
-            - range="0 0.34": Maximum 34cm elevation
-            - damping="0.01": Low damping (smooth movement)
-            - frictionloss="1000": High friction (brake effect for weight support)
-          -->
+          <!-- Torso Height Joint: 0-34cm elevation -->
           <body name="mobilebase0_support" pos="0.05 0 0.2">
             <joint name="mobilebase0_joint_torso_height" pos="0 0 0" axis="0 0 1" type="slide" limited="true" range="0 0.34" damping="0.01" frictionloss="1000"/>
             <geom name="mobilebase0_g1_col" size="0.1125 0.2" pos="-0.05 0 -0.2" type="cylinder" rgba="0.5 0.5 0 1"/>
             <geom name="mobilebase0_support" size="0.1125 0.2" pos="-0.05 0 -0.2" type="cylinder" group="1" material="mobilebase0_Shell005_001_001_002_001"/>
             <site name="mobilebase0_center" pos="0 0 0" size="0.01" group="1" rgba="0 0 0 0"/>
-            <!-- Robot view cameras: Observe robot from various angles -->
             <camera name="robot0_agentview_center" pos="-0.6 0 1.15" quat="0.636946 0.332519 -0.319924 -0.61756"/>
             <camera name="robot0_agentview_left" pos="-0.5 0.35 1.05" quat="0.556238 0.299353 -0.376787 -0.677509" fovy="60"/>
             <camera name="robot0_agentview_right" pos="-0.5 -0.35 1.05" quat="0.677509 0.376787 -0.299353 -0.556239" fovy="60"/>
             <camera name="robot0_frontview" pos="-0.5 0 0.95" quat="0.608894 0.381468 -0.367391 -0.590555" fovy="60"/>
 
-            <!-- ======================================================== -->
-            <!-- PANDA ROBOT ARM: 7-DOF Manipulator                      -->
-            <!-- ======================================================== -->
-            <!--
-              Franka Emika Panda robot arm
-              - 7 revolute joints (joint1 ~ joint7)
-              - Each joint has unique rotation range and axis
-              - Low-friction design for high precision and smooth movement
 
-              Link chain:
-              link0 → link1 → link2 → link3 → link4 → link5 → link6 → link7
-                ↓      ↓       ↓       ↓       ↓       ↓       ↓       ↓
-              base  joint1  joint2  joint3  joint4  joint5  joint6  joint7
-            -->
+            <!-- Panda Arm: 7-DOF manipulator -->
             <body name="robot0_link0">
               <inertial pos="0 0 0.05" mass="4" diaginertia="0.4 0.4 0.4"/>
               <geom name="robot0_g0_vis" type="mesh" contype="0" conaffinity="0" group="1" material="robot0_Shell010_001" mesh="robot0_link0_vis_0"/>
@@ -592,92 +319,11 @@
         </body>
       </body>
     </body>
-    <body name="wall_room_main" pos="2.6 0.02 1.5" quat="-0.707107 0.707107 0 0">
-      <geom name="wall_room_g0" size="2.64 1.5 0.02" type="box" rgba="0.5 0 0 1"/>
-      <geom name="wall_room_g0_vis" size="2.64 1.5 0.02" type="box" contype="0" conaffinity="0" group="1" material="wall_room_wall_mat"/>
-      <site name="wall_room_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 -1"/>
-    </body>
-    <body name="wall_backing_room_main" pos="2.5 0.14 1.38" quat="-0.707107 0.707107 0 0">
-      <geom name="wall_backing_room_g0" size="2.74 1.62 0.1" type="box" rgba="0.5 0 0 1"/>
-      <geom name="wall_backing_room_g0_vis" size="2.74 1.62 0.1" type="box" contype="0" conaffinity="0" group="1" material="wall_backing_room_wall_mat"/>
-      <site name="wall_backing_room_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 -1"/>
-    </body>
-    <body name="wall_left_room_main" pos="-0.02 -2.95 1.5" quat="0.5 0.5 -0.5 -0.5">
-      <geom name="wall_left_room_g0" size="2.99 1.5 0.02" type="box" rgba="0.5 0 0 1"/>
-      <geom name="wall_left_room_g0_vis" size="2.99 1.5 0.02" type="box" contype="0" conaffinity="0" group="1" material="wall_left_room_wall_mat"/>
-      <site name="wall_left_room_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 -1"/>
-    </body>
-    <body name="wall_left_backing_room_main" pos="-0.14 -2.95 1.38" quat="0.5 0.5 -0.5 -0.5">
-      <geom name="wall_left_backing_room_g0" size="2.99 1.62 0.1" type="box" rgba="0.5 0 0 1"/>
-      <geom name="wall_left_backing_room_g0_vis" size="2.99 1.62 0.1" type="box" contype="0" conaffinity="0" group="1" material="wall_left_backing_room_wall_mat"/>
-      <site name="wall_left_backing_room_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 -1"/>
-    </body>
-    <body name="outlet_room_main" pos="2.9 0 1.2">
-      <geom name="outlet_room_g0" type="mesh" contype="0" conaffinity="0" group="1" friction="0.95 0.3 0.1" solref="0.001" solimp="0.998 0.998" material="outlet_room_outlet" mesh="outlet_room_outlet_0_vis"/>
-      <site name="outlet_room_default_site" pos="0 0 0" size="0.0003" rgba="1 0 0 0"/>
-    </body>
-    <body name="outlet_2_room_main" pos="0 -1 1.2" quat="0.707105 0 0 0.707108">
-      <geom name="outlet_2_room_g0" type="mesh" contype="0" conaffinity="0" group="1" friction="0.95 0.3 0.1" solref="0.001" solimp="0.998 0.998" material="outlet_2_room_outlet" mesh="outlet_2_room_outlet_0_vis"/>
-      <site name="outlet_2_room_default_site" pos="0 0 0" size="0.0003" rgba="1 0 0 0"/>
-    </body>
-    <body name="light_switch_room_main" pos="3.3 0 1.2" quat="0.707388 0 0 -0.706825">
-      <geom name="light_switch_room_g0" type="mesh" contype="0" conaffinity="0" group="1" friction="0.95 0.3 0.1" solref="0.001" solimp="0.998 0.998" material="light_switch_room_lightswitch" mesh="light_switch_room_light_switch_0_vis"/>
-      <site name="light_switch_room_default_site" pos="0 0 0" size="0.0003" rgba="1 0 0 0"/>
-    </body>
-    <body name="light_switch_2_room_main" pos="3.4 0 1.2" quat="0.707388 0 0 -0.706825">
-      <geom name="light_switch_2_room_g0" type="mesh" contype="0" conaffinity="0" group="1" friction="0.95 0.3 0.1" solref="0.001" solimp="0.998 0.998" material="light_switch_2_room_lightswitch" mesh="light_switch_2_room_light_switch_0_vis"/>
-      <site name="light_switch_2_room_default_site" pos="0 0 0" size="0.0003" rgba="1 0 0 0"/>
-    </body>
-    <body name="floor_room_main" pos="2.6 -2.95 -0.02" quat="0.707107 0 0 0.707107">
-      <geom name="floor_room_g0" size="2.99 2.64 0.02" type="box" rgba="0.5 0 0 1"/>
-      <geom name="floor_room_g0_vis" size="2.99 2.64 0.02" type="box" contype="0" conaffinity="0" group="1" material="floor_room_wall_mat"/>
-      <site name="floor_room_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 -1"/>
-    </body>
-    <body name="floor_backing_room_main" pos="2.6 -2.95 -0.14" quat="0.707107 0 0 0.707107">
-      <geom name="floor_backing_room_g0" size="2.99 2.64 0.1" type="box" rgba="0.5 0 0 1"/>
-      <geom name="floor_backing_room_g0_vis" size="2.99 2.64 0.1" type="box" contype="0" conaffinity="0" group="1" material="floor_backing_room_wall_mat"/>
-      <site name="floor_backing_room_default_site" pos="0 0 0" size="0.002" rgba="1 0 0 -1"/>
-    </body>
-
-    <include file="fixtures_body.xml"/>
-    <include file="objects_body.xml" />
   </worldbody>
 
-  <!-- ====================================================================== -->
-  <!-- ACTUATOR: Control System Definition (Motors, Actuators)              -->
-  <!-- ====================================================================== -->
-  <!--
-    This section defines actuators that control each joint of the robot.
-
-    Control Types:
-    1. Position Control:
-       - Robot arm joints (robot0_joint1~7)
-       - Gripper fingers (gripper0_right_finger_joint1~2)
-       - kp: Position gain (proportional gain)
-       - kv: Velocity gain (derivative gain)
-
-    2. Velocity Control:
-       - Mobile base movement (forward, side, yaw)
-       - kv: Velocity gain
-
-    3. Motor Control:
-       - Torso height adjustment (torso_height)
-       - Direct force control method
-
-    Control Parameters:
-    - ctrlrange: Control input range (position: radians, velocity: m/s or rad/s)
-    - forcerange: Maximum output force/torque range (N or Nm)
-    - ctrllimited: Whether control input is limited
-    - forcelimited: Whether force output is limited
-  -->
+  <!-- Actuators: Robot control system -->
   <actuator>
-    <!-- ========== PANDA ARM ACTUATORS (Position Control) ========== -->
-    <!--
-      Control each joint of 7-DOF robot arm with position control
-      - kp="1000": High position gain → Precise position tracking
-      - kv="100": Velocity gain → Smooth movement
-      - forcerange: Maximum torque limit for each joint
-    -->
+    <!-- Panda Arm: Position control (7-DOF) -->
     <position ctrllimited="true" ctrlrange="-2.8973 2.8973" joint="robot0_joint1" name="robot0_torq_j1" kp="1000" kv="100" forcelimited="true" forcerange="-80 80" />
     <position ctrllimited="true" ctrlrange="-1.7628 1.7628" joint="robot0_joint2" name="robot0_torq_j2" kp="1000" kv="100" forcelimited="true" forcerange="-80 80" />
     <position ctrllimited="true" ctrlrange="-2.8973 2.8973" joint="robot0_joint3" name="robot0_torq_j3" kp="1000" kv="100" forcelimited="true" forcerange="-80 80" />
@@ -686,65 +332,22 @@
     <position ctrllimited="true" ctrlrange="-0.0175 3.7525" joint="robot0_joint6" name="robot0_torq_j6" kp="1000" kv="100" forcelimited="true" forcerange="-12 12" />
     <position ctrllimited="true" ctrlrange="-2.8973 2.8973" joint="robot0_joint7" name="robot0_torq_j7" kp="1000" kv="100" forcelimited="true" forcerange="-12 12" />
 
-    <!-- ========== MOBILE BASE ACTUATORS (Velocity Control) ========== -->
-    <!--
-      Control Omron mobile base with velocity control
-      - forward/side: ±1.0 m/s velocity range (forward/backward/left/right movement)
-      - yaw: ±1.5 rad/s rotation velocity range (in-place rotation)
-      - kv="1000": Velocity gain (forward/side), kv="1500": Rotation gain (yaw)
-      - forcerange="±600 N": Maximum driving force (weight support and acceleration)
-
-      Control method:
-      When the PD controller in simulator.py calculates target position,
-      this velocity actuator executes the actual velocity command.
-    -->
+    <!-- Mobile Base: Velocity control (holonomic drive) -->
     <velocity ctrllimited="true" ctrlrange="-1.00 1.00" joint="mobilebase0_joint_mobile_forward" kv="1000" name="mobilebase0_actuator_mobile_forward" forcelimited="true" forcerange="-600 600" />
     <velocity ctrllimited="true" ctrlrange="-1.00 1.00" joint="mobilebase0_joint_mobile_side" kv="1000" name="mobilebase0_actuator_mobile_side" forcelimited="true" forcerange="-600 600" />
     <velocity ctrllimited="true" ctrlrange="-1.50 1.50" joint="mobilebase0_joint_mobile_yaw" kv="1500" name="mobilebase0_actuator_mobile_yaw" forcelimited="true" forcerange="-600 600" />
 
-    <!-- ========== TORSO HEIGHT ACTUATOR (Motor Control) ========== -->
-    <!--
-      Control torso height adjustment with direct force control
-      - Very large control range (±100000): Powerful lifting capability
-      - forcelimited="false": No force limit (sufficient to support robot weight)
-    -->
+    <!-- Torso Height: Motor control (lift joint) -->
     <motor ctrllimited="true" ctrlrange="-100000.0 100000.0" joint="mobilebase0_joint_torso_height" name="mobilebase0_actuator_torso_height" forcelimited="false" />
 
-    <!-- ========== GRIPPER ACTUATORS (Position Control) ========== -->
-    <!--
-      Control 2-finger parallel gripper with position control
-      - finger_joint1: 0.0 ~ 0.04m (open → close)
-      - finger_joint2: -0.04 ~ 0.0m (opposite direction)
-      - kp="1000": High position gain → Precise grip
-      - forcerange="±20 N": Appropriate grip force (prevent object damage)
-    -->
+    <!-- Gripper: Position control (2-finger parallel) -->
     <position ctrllimited="true" ctrlrange="0.0 0.04" joint="gripper0_right_finger_joint1" kp="1000" name="gripper0_right_gripper_finger_joint1" forcelimited="true" forcerange="-20 20" />
     <position ctrllimited="true" ctrlrange="-0.04 0.0" joint="gripper0_right_finger_joint2" kp="1000" name="gripper0_right_gripper_finger_joint2" forcelimited="true" forcerange="-20 20" />
   </actuator>
 
-  <!-- ====================================================================== -->
-  <!-- SENSOR: Sensor Definitions (Force/Torque Sensors)                    -->
-  <!-- ====================================================================== -->
-  <!--
-    This section defines the robot's sensors.
-
-    Gripper Force/Torque (F/T) Sensors:
-    - Measures forces and torques applied to the end-effector
-    - site="gripper0_right_ft_frame": Location where sensor is attached
-    - Purpose:
-      * Object contact detection
-      * Grip force control
-      * Safety monitoring (prevent excessive force)
-      * Force feedback control
-
-    Sensor Data:
-    - force: 3D force vector [Fx, Fy, Fz] (Newton)
-    - torque: 3D torque vector [Tx, Ty, Tz] (Newton-meter)
-  -->
+  <!-- Sensors: Force/torque sensors -->
   <sensor>
-    <!-- Gripper force sensor: Measures force applied to end-effector -->
     <force site="gripper0_right_ft_frame" name="gripper0_right_force_ee"/>
-    <!-- Gripper torque sensor: Measures torque applied to end-effector -->
     <torque site="gripper0_right_ft_frame" name="gripper0_right_torque_ee"/>
   </sensor>
 </mujoco>

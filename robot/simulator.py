@@ -70,14 +70,14 @@ class RobotConfig:
     CAM_AZIMUTH = 135
     CAM_ELEVATION = -25
 
-    MOBILE_INIT_POSITION = np.array([0.0, 0.0, 0.0])
+    MOBILE_INIT_POSITION = np.array([1.8, -3.45, 3.141592])
     ARM_INIT_POSITION = np.array([-0.0114, -1.0319,  0.0488, -2.2575,  0.0673,  1.5234, 0.6759])
 
 
 class MujocoSimulator:
     """MuJoCo simulator with PD-controlled mobile base position tracking."""
 
-    def __init__(self, xml_path="../model/robocasa/panda_omron.xml"):
+    def __init__(self, xml_path="../model/robocasa/site.xml"):
         """Initialize simulator with MuJoCo model and control indices."""
         self.model = mujoco.MjModel.from_xml_path(xml_path)
         self.data  = mujoco.MjData(self.model)
