@@ -8,7 +8,8 @@ A REST API-based control system for Panda-Omron mobile manipulator simulation us
 - **REST API Control**: Send Python code via HTTP to control the robot
 - **Sandboxed Execution**: Safe code execution environment with limited access
 - **Mobile Base & Arm Control**: Holonomic drive system + 7-DOF Panda arm
-- **End Effector Control**: Basic delta movement (relative position control)
+- **End Effector Control**: IK-based position control in world frame
+- **Object Perception**: Query positions and orientations of all scene objects
 - **PID Controller**: Mobile base with integral term for steady-state error elimination
 - **Synchronous Processing**: Blocking HTTP requests ensure action completion
 - **Adaptive Convergence**: Smart waiting with position + velocity stability checks
@@ -124,31 +125,56 @@ reach_config = [0, 0.2, 0, -1.5, 0, 1.7, 0.785]
 set_arm_target_joint(reach_config, verbose=True)
 ```
 
-#### End Effector Control (Delta Movement)
+#### End Effector Control (World Frame)
 
-Move end effector forward 10cm:
+Move end effector to absolute world position:
 ```python
-move_ee_delta([0.1, 0.0, 0.0])
+set_ee_target_position([1.5, -3.0, 1.2])
 ```
 
 Get current end effector pose:
 ```python
-# Returns tuple: (position, orientation)
+# Returns tuple: (position, orientation) in world frame
 pos, ori = get_ee_position()
-print(pos)  # [x, y, z]
-print(ori)  # [roll, pitch, yaw]
+print(pos)  # [x, y, z] in meters
+print(ori)  # [roll, pitch, yaw] in radians
 ```
 
-Simple pick and lift pattern:
+Pick and place pattern:
 ```python
-# Lower 20cm
-move_ee_delta([0.0, 0.0, -0.2])
+# Get object position
+objects = get_object_positions()
+if 'object_apple_0' in objects:
+    apple_pos = objects['object_apple_0']['pos']
+    
+    # Move above the apple
+    approach_pos = [apple_pos[0], apple_pos[1], apple_pos[2] + 0.2]
+    set_ee_target_position(approach_pos)
+    
+    # Lower to grasp height
+    grasp_pos = [apple_pos[0], apple_pos[1], apple_pos[2] + 0.05]
+    set_ee_target_position(grasp_pos)
+    
+    # Lift object
+    lift_pos = [apple_pos[0], apple_pos[1], apple_pos[2] + 0.3]
+    set_ee_target_position(lift_pos)
+```
 
-# Move forward 10cm
-move_ee_delta([0.1, 0.0, 0.0])
+#### Object Perception
 
-# Lift 30cm
-move_ee_delta([0.0, 0.0, 0.3])
+Get all object positions:
+```python
+# Returns dictionary mapping object names to their properties
+objects = get_object_positions()
+
+for name, obj in objects.items():
+    print(f"{name}: pos={obj['pos']}, ori={obj['ori']}")
+
+# Access specific object
+if 'object_banana_1' in objects:
+    banana = objects['object_banana_1']
+    target = [banana['pos'][0], banana['pos'][1], banana['pos'][2] + 0.1]
+    set_ee_target_position(target)
 ```
 
 #### Combined Control
@@ -198,16 +224,23 @@ pos, ori = get_ee_position()
   - **Convergence**: Joint error < 0.1 rad, velocity < 0.1 rad/s, stable for 5 frames
   - **Returns**: True if converged, False if timeout
 
-#### End Effector Control (Delta Movement)
+#### End Effector Control (World Frame)
 - `get_ee_position()`
-  - **Returns**: Tuple (position, orientation) where position=[x,y,z], orientation=[roll,pitch,yaw]
+  - **Returns**: Tuple (position, orientation) where position=[x,y,z] in meters (world frame), orientation=[roll,pitch,yaw] in radians (world frame)
 
-- `move_ee_delta(delta_pos, timeout=10.0, verbose=False)`
-  - `delta_pos`: Relative movement [dx, dy, dz] in meters
+- `set_ee_target_position(target_pos, timeout=10.0, verbose=False)`
+  - `target_pos`: Target position [x, y, z] in meters (world frame)
   - `timeout`: Maximum wait time in seconds (default: 10.0, set 0 for non-blocking)
   - `verbose`: Print convergence progress (default: False)
-  - **Note**: Position only - no orientation control
-  - **Returns**: True if converged, False if timeout
+  - **Note**: Position only - no orientation control, uses IK solver
+  - **Returns**: True if IK succeeded and converged, False if IK failed or timeout
+
+#### Object Perception
+- `get_object_positions()`
+  - **Returns**: Dictionary mapping object names to their properties
+    - Key: object name (str)
+    - Value: dict with 'id' (int), 'pos' (list[float]), 'ori' (list[float])
+  - All positions and orientations are in world frame
 
 #### Utilities
 - `print()`: Print debug messages
@@ -230,10 +263,13 @@ with-robot-4th-lab/
 │   └── client.ipynb         # Jupyter notebook for testing API
 ├── model/
 │   └── robocasa/            # From RoboCasa project
-│       ├── panda_omron.xml  # Robot model (default)
-│       └── assets/          # Meshes, textures, and scene objects
+│       ├── site.xml         # Main scene file (entry point)
+│       ├── panda_omron.xml  # Robot model definition
+│       ├── fixtures.xml     # Kitchen fixtures (fridge, oven, etc.)
+│       ├── objects/         # Object definitions (fruits, utensils, etc.)
+│       ├── assets/          # Meshes and textures
+│       └── backup/          # Backup files
 ├── requirements.txt         # Python dependencies
-├── CLAUDE.md               # Development documentation
 └── README.md               # This file
 ```
 
@@ -247,7 +283,7 @@ The system uses a two-thread architecture:
 **Execution Model**: Actions execute synchronously - each HTTP request blocks until code execution completes.
 
 **Component Layers**:
-1. **simulator.py**: Core MuJoCo physics simulation with PID controller (mobile base) and position controller (arm)
+1. **simulator.py**: Core MuJoCo physics simulation with PID controller (mobile base), position controller (arm), and IK solver (end effector)
 2. **code_repository.py**: Sandboxed Python execution environment
 3. **main.py**: FastAPI server orchestrating simulator and action execution
 
@@ -282,12 +318,18 @@ PORT = 8800       # API server port
 
 ### Robot Model
 
-The robot model XML and scene assets are from the [RoboCasa](https://github.com/robocasa/robocasa) project. Change the MuJoCo model in `robot/simulator.py`:
+The robot model XML and scene assets are from the [RoboCasa](https://github.com/robocasa/robocasa) project. The main scene file is loaded in `robot/simulator.py`:
 
 ```python
 # Line 80
-xml_path = "../model/robocasa/panda_omron.xml"  # Default from RoboCasa
+xml_path = "../model/robocasa/site.xml"  # Main scene entry point
 ```
+
+The scene is organized as:
+- `site.xml`: Main scene file that includes robot, fixtures, and objects
+- `panda_omron.xml`: Robot model definition (Panda arm + Omron mobile base)
+- `fixtures.xml`: Kitchen environment (fridge, oven, sink, counters, etc.)
+- `objects/`: Individual object definitions (fruits, utensils, bowls, etc.)
 
 ## Technical Details
 
@@ -295,7 +337,8 @@ xml_path = "../model/robocasa/panda_omron.xml"  # Default from RoboCasa
 - **Control System**:
   - PID controller for mobile base velocity tracking
   - Position control for 7-DOF Panda arm
-  - Basic delta movement for end effector (no IK solver)
+  - IK solver (damped least squares) for end effector position control
+- **Coordinate System**: All positions and orientations in world frame
 - **Convergence Logic**:
   - Position + velocity stability checks
   - Adaptive sleep intervals (0.02s-0.1s based on error)
@@ -319,19 +362,27 @@ xml_path = "../model/robocasa/panda_omron.xml"  # Default from RoboCasa
 - Joint velocity norm < 0.1 rad/s
 - Stability: 5 consecutive frames within threshold
 
-**End Effector (Delta Movement):**
-- Same as Arm joint convergence (error < 0.1 rad, velocity < 0.1 rad/s)
-- No IK solver - relative movement only
+**End Effector (IK-based Position Control):**
+- Joint position error norm < 0.1 radians
+- Joint velocity norm < 0.1 rad/s
+- Stability: 5 consecutive frames within threshold
+- IK solver: Damped least squares for position-only targeting
 - No orientation control
 
 ## Current Limitations
 
-- **No IK solver**: Cannot command absolute end effector poses with orientation
+- **No orientation control**: Cannot command end effector orientation (roll, pitch, yaw)
 - **No gripper control**: Gripper functions not yet exposed to sandbox
 - **Synchronous execution only**: Cannot run multiple actions concurrently
-- **No object detection**: Vision/perception functions not available
+- **Read-only object perception**: Can read object positions but cannot manipulate them directly
 
-See [CLAUDE.md](CLAUDE.md) for development guidance on adding features like IK solver.
+## Recent Enhancements
+
+- **IK solver**: Damped least squares IK for position-only end effector control
+- **World frame control**: All positions in consistent world coordinate frame
+- **Object perception**: Can query positions and orientations of all scene objects
+
+See [CLAUDE.md](CLAUDE.md) for development guidance on adding features.
 
 ## License
 

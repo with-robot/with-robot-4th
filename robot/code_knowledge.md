@@ -27,12 +27,14 @@ User-submitted code executes in a **restricted sandbox environment** with access
 - **Execution Model**: Actions execute **synchronously** - each HTTP request blocks until code execution completes
 
 ### Coordinate System
+- **World Frame**: All positions and orientations are in world coordinates
 - **Mobile Base**: Ground plane (x, y, theta)
-  - x: forward/backward position in meters
-  - y: left/right position in meters
+  - x: forward/backward position in meters (world frame)
+  - y: left/right position in meters (world frame)
   - theta: rotation angle in radians (counterclockwise positive)
 - **Arm Joints**: 7-DOF Panda arm with joint angles in radians [j1, j2, j3, j4, j5, j6, j7]
-- **End Effector**: Position [x, y, z] in meters, orientation [roll, pitch, yaw] in radians
+- **End Effector**: Position [x, y, z] in meters (world frame), orientation [roll, pitch, yaw] in radians (world frame)
+- **Objects**: All object positions and orientations are in world frame
 
 ### Control Strategy
 - **Mobile Base**: PID velocity controller with position tracking
@@ -180,15 +182,15 @@ set_arm_target_joint([0.1, -0.5, 0.2, -1.8, 0.3, 1.2, 0.9], timeout=0)
 
 #### `get_ee_position()`
 
-Gets the current end effector pose (position and orientation).
+Gets the current end effector pose (position and orientation) in world frame.
 
 **Parameters:**
 - None
 
 **Returns:**
 - `tuple`: (position, orientation) where:
-  - `position` (list[float]): [x, y, z] in meters
-  - `orientation` (list[float]): [roll, pitch, yaw] in radians (XYZ Euler angles)
+  - `position` (list[float]): [x, y, z] in meters (world frame)
+  - `orientation` (list[float]): [roll, pitch, yaw] in radians (XYZ Euler angles, world frame)
 
 **Example:**
 ```python
@@ -203,19 +205,19 @@ if current_pos[2] > 0.5:
     print("End effector is high enough")
 ```
 
-#### `move_ee_delta(delta_pos, timeout=10.0, verbose=False)`
+#### `set_ee_target_position(target_pos, timeout=10.0, verbose=False)`
 
-Moves the end effector relative to current position (position only, no orientation control).
+Sets the end effector target position in world frame (position only, no orientation control).
 
 **Parameters:**
-- `delta_pos` (list[float]): Relative movement [dx, dy, dz] in meters
+- `target_pos` (list[float]): Target position [x, y, z] in meters (world frame)
 - `timeout` (float, optional): Maximum wait time in seconds (default: 10.0)
   - Set to 0 for non-blocking behavior
   - Set to positive value to wait for convergence
 - `verbose` (bool, optional): Print convergence progress (default: False)
 
 **Returns:**
-- `bool` or `None`: True if converged, False if timeout (when timeout > 0)
+- `bool`: True if IK succeeded and converged, False if IK failed or timeout
 
 **Convergence Criteria:**
 - Joint position error norm < 0.1 radians
@@ -224,22 +226,74 @@ Moves the end effector relative to current position (position only, no orientati
 
 **Limitations:**
 - **Position only**: Cannot control orientation (roll, pitch, yaw)
-- **Relative movement**: No absolute positioning or IK solver
-- **Joint space control**: Updates arm joint targets based on current EE position + delta
+- **IK solver**: Uses damped least squares IK with position-only targeting
+- **World frame**: Target position is in world coordinates, not robot-relative
 
 **Example:**
 ```python
-# Move end effector 10cm forward
-move_ee_delta([0.1, 0.0, 0.0])
+# Move end effector to absolute world position
+set_ee_target_position([1.5, -3.0, 1.2])
 
-# Move 5cm up with verbose output
-move_ee_delta([0.0, 0.0, 0.05], verbose=True)
+# Move to position with verbose output
+set_ee_target_position([2.0, -2.5, 1.0], verbose=True)
 
-# Move 10cm left, 5cm back
-move_ee_delta([0.0, 0.1, -0.05], timeout=5)
+# Non-blocking positioning
+set_ee_target_position([1.0, -3.5, 1.3], timeout=0)
 
-# Non-blocking delta movement
-move_ee_delta([0.05, 0.0, 0.0], timeout=0)
+# Check success
+success = set_ee_target_position([1.2, -3.2, 1.1], timeout=5)
+if not success:
+    print("Failed to reach target position")
+```
+
+#### `get_object_positions()`
+
+Gets the positions and orientations of all objects in the scene (bodies starting with 'object_').
+
+**Parameters:**
+- None
+
+**Returns:**
+- `dict`: Dictionary mapping object names to their properties:
+  - Key: object name (str)
+  - Value: dict with:
+    - `'id'` (int): Body ID in MuJoCo model
+    - `'pos'` (list[float]): Position [x, y, z] in meters (world frame)
+    - `'ori'` (list[float]): Orientation [roll, pitch, yaw] in radians (XYZ Euler angles, world frame)
+
+**Example:**
+```python
+# Get all object positions
+objects = get_object_positions()
+
+# Access specific object
+if 'object_apple_0' in objects:
+    apple = objects['object_apple_0']
+    print(f"Apple at: {apple['pos']}")
+    print(f"Apple orientation: {apple['ori']}")
+
+# Find closest object to a position
+target = [2.0, -3.0, 1.0]
+closest_name = None
+closest_dist = float('inf')
+
+for name, obj in objects.items():
+    dx = obj['pos'][0] - target[0]
+    dy = obj['pos'][1] - target[1]
+    dz = obj['pos'][2] - target[2]
+    dist = (dx**2 + dy**2 + dz**2) ** 0.5
+    if dist < closest_dist:
+        closest_dist = dist
+        closest_name = name
+
+print(f"Closest object: {closest_name} at distance {closest_dist}")
+
+# Move end effector to object position
+if 'object_banana_1' in objects:
+    banana_pos = objects['object_banana_1']['pos']
+    # Move 10cm above the banana
+    target_pos = [banana_pos[0], banana_pos[1], banana_pos[2] + 0.1]
+    set_ee_target_position(target_pos)
 ```
 
 ## Available Constants and Utilities
@@ -259,9 +313,12 @@ The sandbox provides access to the following robot control functions:
 - `get_arm_joint_position()`: Get current joint angles [j1~j7]
 - `set_arm_target_joint(joints, timeout, verbose)`: Set joint targets
 
-**End Effector (Delta Movement):**
-- `get_ee_position()`: Get current EE pose (position, orientation)
-- `move_ee_delta(delta_pos, timeout, verbose)`: Move EE relatively (position only)
+**End Effector (World Frame):**
+- `get_ee_position()`: Get current EE pose (position, orientation) in world frame
+- `set_ee_target_position(target_pos, timeout, verbose)`: Set EE target position in world frame (position only)
+
+**Object Perception:**
+- `get_object_positions()`: Get all object positions and orientations in world frame
 
 ### Builtin Functions
 The sandbox provides access to the following Python builtins:
@@ -339,50 +396,56 @@ set_arm_target_joint(reach_config)
 
 #### Basic End Effector Movement
 ```python
-# Move end effector forward 10cm
-move_ee_delta([0.1, 0.0, 0.0])
+# Move end effector to absolute world position
+set_ee_target_position([1.5, -3.0, 1.2])
 
-# Move up 5cm
-move_ee_delta([0.0, 0.0, 0.05])
+# Move to a different position
+set_ee_target_position([2.0, -2.5, 1.0])
 
-# Move left 10cm and down 5cm
-move_ee_delta([0.0, 0.1, -0.05])
+# Move with verbose output
+set_ee_target_position([1.8, -3.2, 1.3], verbose=True)
 ```
 
-#### Simple Pick and Lift Pattern
+#### Pick and Place Pattern
 ```python
-# Get current EE position
-pos, ori = get_ee_position()
-print(f"Starting at: {pos}")
-
-# Lower 20cm
-move_ee_delta([0.0, 0.0, -0.2])
-
-# Move forward 10cm (approach object)
-move_ee_delta([0.1, 0.0, 0.0])
-
-# Lift 30cm
-move_ee_delta([0.0, 0.0, 0.3])
-
-# Check final position
-final_pos, final_ori = get_ee_position()
-print(f"Final position: {final_pos}")
+# Get object position
+objects = get_object_positions()
+if 'object_apple_0' in objects:
+    apple_pos = objects['object_apple_0']['pos']
+    print(f"Apple at: {apple_pos}")
+    
+    # Move above the apple
+    approach_pos = [apple_pos[0], apple_pos[1], apple_pos[2] + 0.2]
+    set_ee_target_position(approach_pos)
+    
+    # Lower to grasp height
+    grasp_pos = [apple_pos[0], apple_pos[1], apple_pos[2] + 0.05]
+    set_ee_target_position(grasp_pos)
+    
+    # Lift object
+    lift_pos = [apple_pos[0], apple_pos[1], apple_pos[2] + 0.3]
+    set_ee_target_position(lift_pos)
+    
+    # Move to placement location
+    place_pos = [2.5, -2.8, 1.0]
+    set_ee_target_position(place_pos)
 ```
 
-#### Scan Pattern with Delta Movement
+#### Scan Multiple Objects
 ```python
-# Scan grid pattern (relative movements)
-scan_deltas = [
-    [0.0, 0.1, 0.0],   # Move left
-    [0.0, 0.1, 0.0],   # Move left again
-    [0.0, -0.2, 0.0],  # Return right
-    [0.1, 0.0, 0.0],   # Move forward
-]
+# Get all objects
+objects = get_object_positions()
 
-for delta in scan_deltas:
-    move_ee_delta(delta, verbose=True)
-    pos, ori = get_ee_position()
-    print(f"Scanned at: {pos}")
+# Visit each object
+for name, obj in objects.items():
+    print(f"Moving to {name}")
+    # Move 15cm above each object
+    target = [obj['pos'][0], obj['pos'][1], obj['pos'][2] + 0.15]
+    success = set_ee_target_position(target, verbose=True)
+    if success:
+        print(f"Reached {name}")
+    else:
+        print(f"Failed to reach {name}")
 ```
 
 #### Sequential Multi-Point Navigation
@@ -429,36 +492,38 @@ for i in range(num_points + 1):
 
     set_mobile_target_joint([x, y, theta], timeout=5, verbose=True)
 
-    # Lift arm slightly at each point
+    # Adjust end effector height at each point
     if i > 0:
-        move_ee_delta([0.0, 0.0, 0.02])
+        pos, ori = get_ee_position()
+        new_pos = [pos[0], pos[1], pos[2] + 0.02]
+        set_ee_target_position(new_pos)
 ```
 
-#### Coordinate Mobile Base and EE for Workspace Coverage
+#### Coordinate Mobile Base and EE for Object Collection
 ```python
-# Move base to different locations, use EE to scan each area
+# Move base to different locations and collect objects
 base_positions = [
-    [1.0, 0.0, 0],
-    [1.0, 1.0, PI/2],
-    [0.0, 1.0, PI]
-]
-
-ee_scan_pattern = [
-    [0.1, 0.0, 0.0],
-    [0.0, 0.1, 0.0],
-    [-0.1, 0.0, 0.0],
-    [0.0, -0.1, 0.0]
+    [1.8, -3.0, 0],
+    [2.5, -2.8, 0],
+    [3.2, -3.2, 0]
 ]
 
 for base_pos in base_positions:
     print(f"Moving base to {base_pos}")
     set_mobile_target_joint(base_pos)
-
-    # Scan with end effector at this base position
-    for delta in ee_scan_pattern:
-        move_ee_delta(delta, timeout=3)
-        pos, ori = get_ee_position()
-        print(f"  Scanned: {pos}")
+    
+    # Find nearby objects
+    objects = get_object_positions()
+    for name, obj in objects.items():
+        # Check if object is within reach
+        dx = obj['pos'][0] - base_pos[0]
+        dy = obj['pos'][1] - base_pos[1]
+        dist = (dx**2 + dy**2) ** 0.5
+        
+        if dist < 0.8:  # Within 80cm reach
+            print(f"  Reaching for {name}")
+            target = [obj['pos'][0], obj['pos'][1], obj['pos'][2] + 0.1]
+            set_ee_target_position(target, timeout=5)
 ```
 
 ## Parameters and Safety Information
@@ -489,10 +554,10 @@ When sending code via REST API:
 - Convergence thresholds prevent premature motion termination
 
 **End Effector Control:**
-- **No IK solver**: Cannot set absolute poses with orientation
-- **Position only**: Delta movement only affects x, y, z
+- **IK solver**: Damped least squares IK for position-only targeting
+- **Position only**: Can set absolute position but not orientation
 - **No orientation control**: Roll, pitch, yaw cannot be commanded
-- **Relative movement**: Updates based on current EE position
+- **World frame**: All positions are in world coordinates
 
 **Execution Environment:**
 - **Synchronous execution**: HTTP request blocks until code completes
@@ -505,7 +570,7 @@ When sending code via REST API:
 **Position Thresholds:**
 - Mobile base: 0.1m position error, 0.05 m/s velocity
 - Arm (joint space): 0.1 rad position error, 0.1 rad/s velocity
-- End effector (delta): Same as arm joint convergence
+- End effector (IK): Same as arm joint convergence
 
 **Stability Requirements:**
 - Must maintain threshold for 5 consecutive frames (~50ms at typical sim rate)
@@ -514,7 +579,7 @@ When sending code via REST API:
 **Timeout Recommendations:**
 - Short moves (<1m or <60°): 5-10 seconds
 - Long moves (>2m or >120°): 10-20 seconds
-- End effector delta moves: 3-10 seconds
+- End effector positioning: 5-10 seconds
 - Complex trajectories: Consider non-blocking + manual timing
 
 ### Debugging Tips
@@ -531,10 +596,10 @@ success = set_mobile_target_joint([2.0, 1.0, PI/2], timeout=5)
 if not success:
     print("Warning: Motion did not converge within timeout")
 
-# Check delta movement success
-success = move_ee_delta([0.1, 0.0, 0.0], timeout=5)
+# Check end effector positioning success
+success = set_ee_target_position([1.5, -3.0, 1.2], timeout=5)
 if not success:
-    print("Delta movement did not converge")
+    print("End effector positioning failed or timed out")
 ```
 
 **Progressive Movement:**
@@ -549,7 +614,7 @@ for wp in waypoints:
 ```python
 # Check pose before and after movement
 print("Before:", get_ee_position())
-move_ee_delta([0.1, 0.0, 0.0], verbose=True)
+set_ee_target_position([1.5, -3.0, 1.2], verbose=True)
 print("After:", get_ee_position())
 ```
 
@@ -590,16 +655,20 @@ RESULT['status'] = 'completed'
 ## Limitations and Future Enhancements
 
 ### Current Limitations
-- **No IK solver**: Cannot command absolute end effector poses with orientation
+- **No orientation control**: Cannot command end effector orientation (roll, pitch, yaw)
 - **No gripper control**: Gripper functions not yet exposed to sandbox
 - **No force/torque sensing**: Sensor data not currently accessible
 - **Synchronous execution only**: Cannot run multiple actions concurrently
-- **No object detection**: Vision/perception functions not available
+- **Read-only object perception**: Can read object positions but cannot manipulate them directly
 
-### Potential Enhancements
-To add full task-space control with IK solver, implement in [simulator.py](simulator.py):
-- Jacobian-based IK with damped least squares
-- Absolute pose targeting with orientation control
-- Base-relative and world-frame coordinate options
+### Recent Enhancements
+- **IK solver**: Damped least squares IK for position-only end effector control
+- **World frame control**: All positions in consistent world coordinate frame
+- **Object perception**: Can query positions and orientations of all scene objects
 
-See [CLAUDE.md](../CLAUDE.md) for implementation guidance.
+### Potential Future Enhancements
+- Full 6-DOF end effector control (position + orientation)
+- Gripper open/close commands
+- Force/torque feedback for contact detection
+- Asynchronous action execution
+- Object grasping and manipulation primitives

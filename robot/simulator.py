@@ -3,7 +3,7 @@
 import time
 import numpy as np
 import mujoco, mujoco.viewer
-from scipy.spatial.transform import Rotation
+from scipy.spatial.transform import Rotation as R
 
 
 class RobotConfig:
@@ -70,7 +70,7 @@ class RobotConfig:
     CAM_AZIMUTH = 135
     CAM_ELEVATION = -25
 
-    MOBILE_INIT_POSITION = np.array([1.8, -3.45, 3.141592])
+    MOBILE_INIT_POSITION = np.array([1.8, -3.45, 0.0])
     ARM_INIT_POSITION = np.array([-0.0114, -1.0319,  0.0488, -2.2575,  0.0673,  1.5234, 0.6759])
 
 
@@ -109,6 +109,13 @@ class MujocoSimulator:
         self.mobile_base_body_id = mujoco.mj_name2id(
             self.model, mujoco.mjtObj.mjOBJ_BODY, "mobilebase0_base"
         )
+
+        # Resolve object IDs
+        self.object_ids = []
+        for i in range(self.model.nbody):
+            name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY, i)
+            if name and name.startswith("object_"):
+                self.object_ids.append(i)
         
         # Set initial mobile base positions (qpos) and velocities (ctrl=0 for velocity control)
         for i, (joint_id, actuator_id) in enumerate(zip(self.mobile_joint_ids, self.mobile_actuator_ids)):
@@ -236,45 +243,23 @@ class MujocoSimulator:
         return current_pos + RobotConfig.ARM_KP * pos_error - RobotConfig.ARM_KD * current_vel
 
     # ============================================================
-    # End Effector Control Methods (Task Space)
+    # End Effector Control Methods
     # ============================================================
     
     @staticmethod
-    def _rotation_matrix_to_euler_xyz(R):
+    def _rotation_matrix_to_euler_xyz(rot):
         """Convert rotation matrix to XYZ Euler angles [roll, pitch, yaw]."""
-        return Rotation.from_matrix(R).as_euler("xyz")
+        return R.from_matrix(rot.reshape(3, 3)).as_euler("xyz")
 
-    def get_ee_world_pose(self, data=None):
-        """Return current end effector pose in world frame."""
+    def get_ee_position(self, data=None):
+        """Return current end effector position and orientation in world frame."""
         if data is None:
             data = self.data
 
         ee_pos = data.site_xpos[self.ee_site_id].copy()
-        ee_rot = data.site_xmat[self.ee_site_id].reshape(3, 3)
+        ee_rot = data.site_xmat[self.ee_site_id]
         ee_ori = self._rotation_matrix_to_euler_xyz(ee_rot)
         return ee_pos, ee_ori
-
-    def get_ee_position(self):
-        """Return end effector pose relative to the mobile base frame."""
-        ee_pos_world, ee_ori_world = self.get_ee_world_pose()
-        base_pos_world = self.get_mobile_world_position()
-        base_theta = base_pos_world[2]
-
-        # Translate to base origin and rotate into base frame
-        dx = ee_pos_world[0] - base_pos_world[0]
-        dy = ee_pos_world[1] - base_pos_world[1]
-        cos_theta = np.cos(-base_theta)
-        sin_theta = np.sin(-base_theta)
-        ee_pos_local = np.array([
-            dx * cos_theta - dy * sin_theta,
-            dx * sin_theta + dy * cos_theta,
-            ee_pos_world[2]
-        ])
-
-        ee_ori_local = ee_ori_world.copy()
-        ee_ori_local[2] -= base_theta
-        ee_ori_local[2] = np.arctan2(np.sin(ee_ori_local[2]), np.cos(ee_ori_local[2]))
-        return ee_pos_local, ee_ori_local
 
     def _compute_ee_jacobian(self, data=None):
         """Compute 6x7 Jacobian for the end effector site (arm joints only)."""
@@ -319,28 +304,44 @@ class MujocoSimulator:
             q = np.clip(q, RobotConfig.ARM_JOINT_LIMITS[:, 0], RobotConfig.ARM_JOINT_LIMITS[:, 1])
 
         return False, q
-
-    def move_ee_delta(self, delta_pos):
-        """Move the end effector by (dx, dy, dz)."""
-        delta_pos = np.asarray(delta_pos, dtype=float)
-        if delta_pos.shape != (3,):
-            raise ValueError("delta_pos must be length-3 iterable")
-
-        ee_local, _ = self.get_ee_position()
-        target_local = ee_local + delta_pos
-        base_pose = self.get_mobile_world_position()
-        cos_theta = np.cos(base_pose[2])
-        sin_theta = np.sin(base_pose[2])
-        target_world = np.array([
-            base_pose[0] + target_local[0] * cos_theta - target_local[1] * sin_theta,
-            base_pose[1] + target_local[0] * sin_theta + target_local[1] * cos_theta,
-            target_local[2]
-        ])
-
-        success, joint_angles = self._solve_ik_position(target_world)
+    
+    def set_ee_target_position(self, target_pos):
+        """Set end effector target position in world frame."""
+        success, joint_angles = self._solve_ik_position(target_pos)
         if success:
             self.set_arm_target_joint(joint_angles)
         return success, joint_angles
+
+    # def move_ee_delta(self, delta_pos):
+    #     """Move the end effector by (dx, dy, dz) in world frame."""
+    #     delta_pos = np.asarray(delta_pos, dtype=float)
+    #     if delta_pos.shape != (3,):
+    #         raise ValueError("delta_pos must be length-3 iterable")
+
+    #     ee_pos_world, _ = self.get_ee_position()
+    #     target_world = ee_pos_world + delta_pos
+
+    #     success, joint_angles = self._solve_ik_position(target_world)
+    #     if success:
+    #         self.set_arm_target_joint(joint_angles)
+    #     return success, joint_angles
+    
+    # ============================================================
+    # Object Interaction Methods
+    # ============================================================
+
+    def get_object_positions(self):
+        """Get list of object dictionaries with id, name, position and orientation in world frame."""
+        objects = {}
+        for i in self.object_ids:
+            name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY, i)
+            if name and name.startswith("object_"):
+                objects[name] = {
+                    'id': i,
+                    'pos': self.data.xpos[i].tolist(), 
+                    'ori': self._rotation_matrix_to_euler_xyz(self.data.xmat[i]).tolist()
+                }
+        return objects
 
     # ============================================================
     # Simulation Loop

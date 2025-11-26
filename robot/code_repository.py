@@ -67,7 +67,8 @@ def set_mobile_target_joint(mobile_target_position, timeout=10.0, verbose=False)
     # Update mobile base target position immediately (non-blocking)
     simulator.set_mobile_target_joint(mobile_target_position)
 
-    if timeout > 0:
+    success = True
+    if success and timeout > 0:
         def get_mobile_pos_diff_weighted():
             diff = simulator.get_mobile_joint_diff()
             diff[-1] /= 2  # Theta weighted at 50%
@@ -82,8 +83,8 @@ def set_mobile_target_joint(mobile_target_position, timeout=10.0, verbose=False)
             stable_frames=5,
             verbose=verbose
         )
-        if converged:
-            return converged
+        success = converged
+    return success
 
 
 def get_arm_joint_position():
@@ -104,7 +105,8 @@ def set_arm_target_joint(arm_target_position, timeout=10.0, verbose=False):
     # Update arm target position immediately (non-blocking)
     simulator.set_arm_target_joint(arm_target_position)
 
-    if timeout > 0:
+    success = True
+    if success and timeout > 0:
         converged = _wait_for_convergence(
             simulator.get_arm_joint_diff,
             simulator.get_arm_joint_velocity,
@@ -114,8 +116,8 @@ def set_arm_target_joint(arm_target_position, timeout=10.0, verbose=False):
             stable_frames=5,
             verbose=verbose
         )
-        if converged:
-            return converged
+        success = converged
+    return success
 
 
 def get_ee_position():
@@ -125,21 +127,21 @@ def get_ee_position():
     return pos.tolist(), ori.tolist()
 
 
-def move_ee_delta(delta_pos, timeout=10.0, verbose=False):
+def set_ee_target_position(target_pos, timeout=10.0, verbose=False):
     """
-    Move end effector relative to current position (x, y, z only).
+    Set end effector target position in world frame.
 
     Args:
-        delta_pos: [dx, dy, dz] relative movement in meters
+        target_pos: [x, y, z] target position in meters
         timeout: Maximum wait time in seconds (default: 10.0)
         verbose: Print convergence progress
 
     Returns:
         bool: True if converged, False if timeout
     """
-    simulator.move_ee_delta(delta_pos)
+    success, joint_angles = simulator.set_ee_target_position(target_pos)
 
-    if timeout > 0:
+    if success and timeout > 0:
         converged = _wait_for_convergence(
             simulator.get_arm_joint_diff,
             simulator.get_arm_joint_velocity,
@@ -149,8 +151,13 @@ def move_ee_delta(delta_pos, timeout=10.0, verbose=False):
             stable_frames=5,
             verbose=verbose
         )
-        if converged:
-            return converged
+        success = converged
+    return success
+
+
+def get_object_positions():
+    """Get list of object dictionaries with id, name, position and orientation."""
+    return simulator.get_object_positions()
 
 
 def exec_code(code):
@@ -163,7 +170,8 @@ def exec_code(code):
         - get_arm_joint_position() -> [j1~j7]
         - set_arm_target_joint(arm_target_position, timeout, verbose)
         - get_ee_position() -> (position, orientation) where position=[x,y,z], orientation=[roll,pitch,yaw]
-        - move_ee_delta(delta_pos, timeout, verbose)
+        - set_ee_target_position(target_pos, timeout, verbose)
+        - get_object_positions() -> list of object dictionaries with id, name, position and orientation
     """
     # Define sandboxed environment with limited access
     safe_globals = {
@@ -175,7 +183,8 @@ def exec_code(code):
         "get_arm_joint_position": get_arm_joint_position,
         "set_arm_target_joint": set_arm_target_joint,
         "get_ee_position": get_ee_position,
-        "move_ee_delta": move_ee_delta,
+        "set_ee_target_position": set_ee_target_position,
+        "get_object_positions": get_object_positions,
     }
     exec(code, safe_globals)
     return safe_globals.get("RESULT")
