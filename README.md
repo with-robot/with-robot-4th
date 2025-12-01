@@ -8,6 +8,8 @@ A REST API-based control system for Panda-Omron mobile manipulator simulation us
 - **REST API Control**: Send Python code via HTTP to control the robot
 - **Sandboxed Execution**: Safe code execution environment with limited access
 - **Mobile Base & Arm Control**: Holonomic drive system + 7-DOF Panda arm
+- **Path Planning**: A* algorithm for collision-free navigation with obstacle avoidance
+- **Grid Map**: Binary occupancy grid map for environment perception
 - **Gripper Control**: Width-based gripper control for grasping objects
 - **End Effector Control**: IK-based position control in world frame
 - **Object Perception**: Query positions and orientations of all scene objects
@@ -110,6 +112,32 @@ positions = [
 
 for pos in positions:
     set_mobile_target_joint(pos)
+```
+
+#### Path Planning Example
+
+Plan and execute collision-free path:
+```python
+# Plan path to target location
+path = plan_mobile_path([2.0, -3.0])
+if path is not None:
+    print(f"Found path with {len(path)} waypoints")
+    # Execute path by visiting each waypoint
+    for waypoint in path:
+        set_mobile_target_joint(waypoint, verbose=True)
+else:
+    print("No path found to target")
+```
+
+Get environment grid map:
+```python
+# Get binary occupancy grid (0=free, 1=occupied)
+grid = get_grid_map()
+print(f"Grid size: {len(grid)} x {len(grid[0])}")
+
+# Check if a cell is free
+if grid[50][50] == 0:
+    print("Cell is navigable")
 ```
 
 #### Arm Control
@@ -227,6 +255,16 @@ pos, ori = get_ee_position()
   - **Convergence**: Position error < 0.1m, velocity < 0.05 m/s, stable for 5 frames
   - **Returns**: True if converged, False if timeout
 
+- `plan_mobile_path(target_joint, grid_size=0.1)`
+  - `target_joint`: Target position [x, y] in world coordinates
+  - `grid_size`: Grid cell size in meters (default: 0.1)
+  - **Returns**: List of waypoints [(x, y, theta), ...] or None if unreachable
+  - **Uses**: A* pathfinding with obstacle inflation and path simplification
+
+- `get_grid_map()`
+  - **Returns**: 2D binary occupancy grid (0=free, 1=occupied)
+  - Grid cell size: 0.1m, includes all static obstacles
+
 #### Arm Control (Joint Space)
 - `get_arm_joint_position()`
   - **Returns**: List [j1~j7] - current joint angles in radians
@@ -281,22 +319,23 @@ For complete API documentation, see [robot/code_knowledge.md](robot/code_knowled
 ```
 with-robot-4th-lab/
 ├── robot/
-│   ├── main.py              # FastAPI server and threading orchestration
-│   ├── simulator.py         # MuJoCo simulator with PID controller
-│   ├── code_repository.py   # Sandboxed code execution layer
-│   ├── code_knowledge.md    # Mobile manipulator API documentation (LLM-ready)
-│   ├── ellmer_knowledge.md  # Kinova robot arm reference examples
-│   └── client.ipynb         # Jupyter notebook for testing API
+│   ├── main.py               # FastAPI server and threading orchestration
+│   ├── simulator.py          # MuJoCo simulator with PID controller
+│   ├── code_repository.py    # Sandboxed code execution layer
+│   ├── code_knowledge.md     # Mobile manipulator API documentation (LLM-ready)
+│   ├── ellmer_knowledge.md   # Kinova robot arm reference examples
+│   └── client.ipynb          # Jupyter notebook for testing API
 ├── model/
-│   └── robocasa/            # From RoboCasa project
-│       ├── site.xml         # Main scene file (entry point)
-│       ├── panda_omron.xml  # Robot model definition
-│       ├── fixtures.xml     # Kitchen fixtures (fridge, oven, etc.)
-│       ├── objects/         # Object definitions (fruits, utensils, etc.)
-│       ├── assets/          # Meshes and textures
-│       └── backup/          # Backup files
-├── requirements.txt         # Python dependencies
-└── README.md               # This file
+│   └── robocasa/             # From RoboCasa project
+│       ├── site.xml          # Main scene file (entry point)
+│       ├── panda_omron.xml   # Robot model definition
+│       ├── fixtures.xml      # Kitchen fixtures (fridge, oven, etc.)
+│       ├── geom_objects.xml  # Temporary geom objects (cubes, etc.)
+│       ├── objects/          # Object definitions (fruits, utensils, etc.)
+│       ├── assets/           # Meshes and textures
+│       └── backup/           # Backup files
+├── requirements.txt          # Python dependencies
+└── README.md                 # This file
 ```
 
 ## Architecture

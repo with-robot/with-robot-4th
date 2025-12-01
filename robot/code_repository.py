@@ -2,14 +2,22 @@
 
 import time
 import numpy as np
+from typing import Optional, List, Tuple, Callable, Dict, Any
 from simulator import MujocoSimulator
 
 # Simulator instance injected by main.py at startup
 simulator: MujocoSimulator = None
 
 
-def _wait_for_convergence(get_pos_diff_fn, get_vel_fn, pos_threshold, vel_threshold,
-                          timeout=10.0, stable_frames=5, verbose=False):
+def _wait_for_convergence(
+    get_pos_diff_fn: Callable[[], np.ndarray],
+    get_vel_fn: Callable[[], np.ndarray],
+    pos_threshold: float,
+    vel_threshold: float,
+    timeout: float = 10.0,
+    stable_frames: int = 5,
+    verbose: bool = False
+) -> bool:
     """Wait for position and velocity convergence with stability check."""
     start_time = time.time()
     stable_count = 0
@@ -49,13 +57,17 @@ def _wait_for_convergence(get_pos_diff_fn, get_vel_fn, pos_threshold, vel_thresh
     return False
 
 
-def get_mobile_joint_position():
+def get_mobile_joint_position() -> List[float]:
     """Get current mobile base position [x, y, theta]."""
     pos = simulator.get_mobile_joint_position().tolist()
     return pos
 
 
-def set_mobile_target_joint(mobile_target_position, timeout=10.0, verbose=False):
+def set_mobile_target_joint(
+    mobile_target_position: List[float],
+    timeout: float = 10.0,
+    verbose: bool = False
+) -> bool:
     """
     Set mobile base target position [x, y, theta] in meters and radians.
 
@@ -69,7 +81,7 @@ def set_mobile_target_joint(mobile_target_position, timeout=10.0, verbose=False)
 
     success = True
     if success and timeout > 0:
-        def get_mobile_pos_diff_weighted():
+        def get_mobile_pos_diff_weighted() -> np.ndarray:
             diff = simulator.get_mobile_joint_diff()
             diff[-1] /= 2  # Theta weighted at 50%
             return diff
@@ -87,13 +99,37 @@ def set_mobile_target_joint(mobile_target_position, timeout=10.0, verbose=False)
     return success
 
 
-def get_arm_joint_position():
+def plan_mobile_path(
+    target_joint: List[float],
+    grid_size: float = 0.1
+) -> Optional[List[List[float]]]:
+    """
+    Plan path for mobile base to reach target joint using A* algorithm.
+    
+    Args:
+        target_joint: Target position [x, y] in world coordinates
+        grid_size: Grid cell size in meters
+        
+    Returns:
+        path: List of waypoints [(x, y, theta), ...] in world coordinates, or None if unreachable
+    """
+    path = simulator.plan_mobile_path(target_joint, grid_size)
+    if path is not None:
+        path = [p.tolist() for p in path]
+    return path
+
+
+def get_arm_joint_position() -> List[float]:
     """Get current arm joint positions [j1~j7] in radians."""
     pos = simulator.get_arm_joint_position().tolist()
     return pos
 
 
-def set_arm_target_joint(arm_target_position, timeout=10.0, verbose=False):
+def set_arm_target_joint(
+    arm_target_position: List[float],
+    timeout: float = 10.0,
+    verbose: bool = False
+) -> bool:
     """
     Set arm target joint positions [j1~j7] in radians.
 
@@ -120,14 +156,18 @@ def set_arm_target_joint(arm_target_position, timeout=10.0, verbose=False):
     return success
 
 
-def get_ee_position():
+def get_ee_position() -> Tuple[List[float], List[float]]:
     """Get current end effector pose as tuple: (position, orientation) where position=[x,y,z], orientation=[roll,pitch,yaw]."""
     pos, ori = simulator.get_ee_position()
 
     return pos.tolist(), ori.tolist()
 
 
-def set_ee_target_position(target_pos, timeout=10.0, verbose=False):
+def set_ee_target_position(
+    target_pos: List[float],
+    timeout: float = 10.0,
+    verbose: bool = False
+) -> bool:
     """
     Set end effector target position in world frame.
 
@@ -155,12 +195,16 @@ def set_ee_target_position(target_pos, timeout=10.0, verbose=False):
     return success
 
 
-def get_gripper_width():
+def get_gripper_width() -> float:
     """Get current gripper width in meters."""
     return simulator.get_gripper_width()
 
 
-def set_target_gripper_width(target_width, timeout=10.0, verbose=False):
+def set_target_gripper_width(
+    target_width: float,
+    timeout: float = 10.0,
+    verbose: bool = False
+) -> bool:
     """
     Set gripper target width.
 
@@ -185,28 +229,39 @@ def set_target_gripper_width(target_width, timeout=10.0, verbose=False):
             stable_frames=5,
             verbose=verbose
         )
-        time.sleep(1.0)
+        time.sleep(1.0)  # Wait for gripper to reach target width
         success = converged
     return success
 
 
-def get_object_positions():
+def get_grid_map() -> List[List[int]]:
+    """Get grid map of the environment."""
+    return simulator.get_grid_map().tolist()
+
+
+def get_object_positions() -> Dict[str, Dict[str, Any]]:
     """Get list of object dictionaries with id, name, position and orientation."""
-    return simulator.get_object_positions()
+    objects = simulator.get_object_positions()
+    for obj in objects.values():
+        obj['pos'] = obj['pos'].tolist()
+        obj['ori'] = obj['ori'].tolist()
+    return objects
 
 
-def exec_code(code):
+def exec_code(code: str) -> Optional[Dict[str, Any]]:
     """
     Execute user code in sandboxed environment.
 
     Available functions:
         - get_mobile_joint_position() -> [x, y, theta]
         - set_mobile_target_joint(mobile_target_position, timeout, verbose)
+        - plan_mobile_path(target_joint, grid_size)
         - get_arm_joint_position() -> [j1~j7]
         - set_arm_target_joint(arm_target_position, timeout, verbose)
         - get_ee_position() -> (position, orientation) where position=[x,y,z], orientation=[roll,pitch,yaw]
         - set_ee_target_position(target_pos, timeout, verbose)
         - set_target_gripper_width(target_width, timeout, verbose)
+        - get_grid_map() -> grid map of the environment
         - get_object_positions() -> list of object dictionaries with id, name, position and orientation
     """
     # Define sandboxed environment with limited access
@@ -216,11 +271,13 @@ def exec_code(code):
         "RESULT": {},
         "get_mobile_joint_position": get_mobile_joint_position,
         "set_mobile_target_joint": set_mobile_target_joint,
+        "plan_mobile_path": plan_mobile_path,
         "get_arm_joint_position": get_arm_joint_position,
         "set_arm_target_joint": set_arm_target_joint,
         "get_ee_position": get_ee_position,
         "set_ee_target_position": set_ee_target_position,
         "set_target_gripper_width": set_target_gripper_width,
+        "get_grid_map": get_grid_map,
         "get_object_positions": get_object_positions,
     }
     exec(code, safe_globals)

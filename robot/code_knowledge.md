@@ -112,6 +112,88 @@ set_mobile_target_joint([2.0, -0.5, PI/2], verbose=True)
 set_mobile_target_joint([0.0, 0.0, 0.0], timeout=0)
 ```
 
+#### `plan_mobile_path(target_joint, grid_size=0.1)`
+
+Plans a collision-free path for the mobile base to reach a target position using the A* algorithm.
+
+**Parameters:**
+- `target_joint` (list[float]): Target position [x, y] in world coordinates
+  - x (float): Target x position in meters
+  - y (float): Target y position in meters
+  - Note: Theta is automatically calculated based on path direction
+- `grid_size` (float, optional): Grid cell size in meters (default: 0.1)
+
+**Returns:**
+- `list[list[float]]` or `None`: List of waypoints [(x, y, theta), ...] in world coordinates
+  - Returns `None` if no path is found or target is unreachable
+  - Each waypoint is [x, y, theta] where theta points toward the next waypoint
+
+**Behavior:**
+- Uses A* pathfinding on an inflated occupancy grid map
+- Obstacles are inflated by robot radius (0.3m) for collision-free planning
+- Path is simplified using line-of-sight and angle-based filtering
+- Final waypoint includes rotation to face the original target
+
+**Example:**
+```python
+# Plan path to target location
+path = plan_mobile_path([2.0, -3.0])
+if path is not None:
+    print(f"Found path with {len(path)} waypoints")
+    # Execute path by visiting each waypoint
+    for waypoint in path:
+        set_mobile_target_joint(waypoint, verbose=True)
+else:
+    print("No path found to target")
+
+# Plan with custom grid size
+path = plan_mobile_path([1.5, -2.5], grid_size=0.05)
+
+# Check if target is reachable before planning
+target = [2.5, -2.8]
+path = plan_mobile_path(target)
+if path:
+    print(f"Target is reachable via {len(path)} waypoints")
+```
+
+#### `get_grid_map()`
+
+Gets the binary occupancy grid map of the environment.
+
+**Parameters:**
+- None
+
+**Returns:**
+- `list[list[int]]`: 2D binary occupancy grid
+  - 0 = free space (navigable)
+  - 1 = occupied space (obstacle)
+  - Grid cell size is 0.1m by default
+  - Coordinates: grid[i][j] where i is row (y-axis), j is column (x-axis)
+
+**Behavior:**
+- Returns cached grid map (computed once at startup)
+- Includes all static obstacles (walls, furniture, appliances)
+- Does not include dynamic objects or the robot itself
+
+**Example:**
+```python
+# Get environment map
+grid = get_grid_map()
+print(f"Grid size: {len(grid)} x {len(grid[0])}")
+
+# Check if a specific cell is free
+row, col = 50, 50
+if grid[row][col] == 0:
+    print(f"Cell ({row}, {col}) is free")
+else:
+    print(f"Cell ({row}, {col}) is occupied")
+
+# Count free cells
+free_cells = sum(row.count(0) for row in grid)
+total_cells = len(grid) * len(grid[0])
+print(f"Free space: {free_cells}/{total_cells} cells")
+```
+
 ### Arm Control
 
 #### `get_arm_joint_position()`
@@ -381,6 +463,8 @@ The sandbox provides access to the following robot control functions:
 **Mobile Base:**
 - `get_mobile_joint_position()`: Get current base position [x, y, theta]
 - `set_mobile_target_joint(position, timeout, verbose)`: Set base target
+- `plan_mobile_path(target_joint, grid_size)`: Plan collision-free path using A* algorithm
+- `get_grid_map()`: Get binary occupancy grid map of the environment
 
 **Arm (Joint Space):**
 - `get_arm_joint_position()`: Get current joint angles [j1~j7]
