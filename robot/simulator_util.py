@@ -2,6 +2,8 @@
 
 import heapq
 import numpy as np
+from scipy.interpolate import splprep, splev
+from scipy.ndimage import binary_dilation
 from typing import Optional, Tuple, List
 
 
@@ -72,6 +74,8 @@ class PathPlanner:
         # A* algorithm
         open_set = []
         heapq.heappush(open_set, (0, start_grid))
+        open_dict = {}
+        open_dict[start_grid] = 0
         came_from = {}
         g_score = {start_grid: 0}
         f_score = {start_grid: heuristic(start_grid, goal_grid)}
@@ -86,6 +90,9 @@ class PathPlanner:
             
             if current in closed_set:
                 continue
+
+            if current in open_dict:
+                del open_dict[current]
             
             closed_set.add(current)
             
@@ -116,8 +123,15 @@ class PathPlanner:
                 if neighbor not in g_score or tentative_g < g_score[neighbor]:
                     came_from[neighbor] = current
                     g_score[neighbor] = tentative_g
-                    f_score[neighbor] = tentative_g + heuristic(neighbor, goal_grid)
-                    heapq.heappush(open_set, (f_score[neighbor], neighbor))
+                    f = tentative_g + heuristic(neighbor, goal_grid)
+
+                    # Skip if already in open_set with better or equal f_score
+                    if neighbor in open_dict and f >= open_dict[neighbor]:
+                        continue
+                    
+                    f_score[neighbor] = f
+                    open_dict[neighbor] = f
+                    heapq.heappush(open_set, (f, neighbor))
         
         # No path found, return path to closest point
         if closest_point != start_grid:
@@ -353,6 +367,51 @@ class PathPlanner:
         simplified.append(path_grid[-1])
 
         return simplified
+    
+    @staticmethod
+    def smooth_path_bspline(
+        path_grid: List[Tuple[float, float]], 
+        smoothing: float = 0.5
+    ) -> List[Tuple[float, float]]:
+        """Smooth path using B-spline interpolation.
+    
+        Args:
+            path_grid: List of (x, y) coordinates
+            smoothing: Smoothing factor (0=exact fit, higher=smoother)
+    
+        Returns:
+            list: Smoothed path as list of (x, y) tuples
+        """
+        if len(path_grid) < 3:
+            return path_grid
+        
+        path = np.array(path_grid)
+        x = path[:, 0]
+        y = path[:, 1]
+        
+        # Remove duplicate consecutive points
+        dist = np.sqrt(np.diff(x)**2 + np.diff(y)**2)
+        dist = np.concatenate(([1.0], dist))
+        keep_indices = dist > 1e-6
+        x = x[keep_indices]
+        y = y[keep_indices]
+        
+        if len(x) < 3:
+            return path_grid
+        
+        try:
+            # Fit B-spline curve
+            tck, u = splprep([x, y], s=smoothing, k=2)
+            
+            # Generate smoothed path with more points
+            num_points = len(path_grid) * 3
+            u_new = np.linspace(0, 1, num_points)
+            x_new, y_new = splev(u_new, tck)
+            
+            return list(zip(x_new, y_new))
+        except Exception:
+            # If B-spline fitting fails, return original path
+            return path_grid
 
     @staticmethod
     def inflate_obstacles(
@@ -370,8 +429,6 @@ class PathPlanner:
         Returns:
             np.ndarray: Inflated grid map with same shape as input
         """
-        from scipy.ndimage import binary_dilation
-
         # Calculate inflation radius in grid cells
         inflation_cells = int(np.ceil(robot_radius / grid_size))
 

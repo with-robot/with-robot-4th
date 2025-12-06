@@ -275,6 +275,9 @@ class MujocoSimulator:
             
             # Second pass: Angle-based filtering
             path_grid = PathPlanner.simplify_path_angle_filter(path_grid)
+            
+            # Third pass: B-spline smoothing
+            path_grid = PathPlanner.smooth_path_bspline(path_grid)
         
         # Convert grid path to world coordinates
         path_world = []
@@ -315,9 +318,30 @@ class MujocoSimulator:
             if verbose:
                 print(f"Moving to waypoint {i+1}/{len(path_world)}: [{waypoint[0]:.2f}, {waypoint[1]:.2f}, {waypoint[2]:.2f}]")
             
-            # Set target position
+            # Check if this is the last waypoint
+            is_last_waypoint = (i == len(path_world) - 1)
+
+            # Get current position
+            curr_pos = self.get_mobile_position()
+
+            # Calculate angle difference
+            angle_diff = waypoint[2] - curr_pos[2]
+            angle_diff = (angle_diff + np.pi) % (2 * np.pi) - np.pi
+
+            if abs(angle_diff) > np.deg2rad(45):
+                rotate_target = curr_pos.copy()
+                rotate_target[2] = waypoint[2]
+                self.set_mobile_target_position(rotate_target)
+
+                # Wait for rotation to complete
+                start_time = time.time()
+                while time.time() - start_time < 5.0:
+                    if np.abs(self.get_mobile_position_diff()[2]) < np.deg2rad(5):
+                        break
+                    time.sleep(0.02)
+
             self.set_mobile_target_position(waypoint)
-            
+                      
             # Wait for convergence
             start_time = time.time()
             converged = False
@@ -329,11 +353,18 @@ class MujocoSimulator:
                 pos_error = np.linalg.norm(pos_diff)
                 vel_error = np.linalg.norm(self.get_mobile_velocity())
                 
-                if pos_error < 0.1 and vel_error < 0.05:
-                    converged = True
-                    if verbose:
-                        print(f"  Reached waypoint {i+1} in {time.time() - start_time:.2f}s")
-                    break
+                if is_last_waypoint:
+                    # Last waypoint: Strict stop required
+                    if pos_error < 0.05 and vel_error < 0.05:
+                        converged = True
+                        if verbose:
+                            print(f"  Reached destination in {time.time() - start_time:.2f}s")
+                        break
+                else:
+                    # Intermediate waypoints: Pass through without stopping (no velocity check)
+                    if pos_error < 0.15:
+                        converged = True
+                        break
                 
                 time.sleep(0.02)
             
