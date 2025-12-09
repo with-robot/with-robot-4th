@@ -330,6 +330,7 @@ def exec_code(code: str) -> Optional[Dict[str, Any]]:
             "print": print,
             "range": range,
             "float": float,
+            "list": list,
             "time": time,
             "math": math,
             "PI": np.pi
