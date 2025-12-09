@@ -78,6 +78,7 @@ result = place_object({pos}, 0.1, 0.2)
         logger.info("Executing task sequence:")
         pprint(task_sequence)
 
+        results = []
         for task in task_sequence:
             logger.info(f"Executing task: {task}")
             if task["skill"] == "GoToObject":
@@ -91,5 +92,9 @@ result = place_object({pos}, 0.1, 0.2)
                 self._place_object(target)
             else:
                 raise ValueError(f"Unknown skill: {task['skill']}")
+            task_result = task.copy()
+            task_result["result"] = "Ok"
+            results.append(task_result)
 
         logger.info("Task sequence execution completed.")
+        return results
