@@ -10,38 +10,85 @@ A REST API-based control system for Panda-Omron mobile manipulator simulation us
 - **Mobile Base Control**: Holonomic drive system with independent x, y, theta control
 - **PD Controller**: Automatic position tracking with configurable gains
 - **Asynchronous Processing**: Non-blocking action queue for smooth operation
+- **Korean Voice Commands**: ElevenLabs STT/TTS for natural language robot control
+- **LLM Agent UI**: Web-based interface for natural language commands
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.12+
 - MuJoCo physics engine support
+- macOS: `mjpython` required for MuJoCo viewer
 
 ### Installation
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/ChloePark85/with-robot-4th.git
 cd with-robot-4th
 ```
 
 2. Install dependencies:
 ```bash
 pip install -r requirements.txt
+pip install elevenlabs langgraph langchain-openai
 ```
 
 Dependencies:
 - FastAPI 0.121.1
 - MuJoCo 3.3.7
 - uvicorn 0.38.0
+- elevenlabs (for voice commands)
+- langgraph, langchain-openai (for LLM agent)
+
+3. **Download Assets (Required, ~5GB)**:
+
+The simulation requires mesh and texture assets from RoboCasa and robosuite projects.
+
+```bash
+# Clone RoboCasa and download assets
+git clone --depth 1 https://github.com/robocasa/robocasa.git /tmp/robocasa
+cd /tmp/robocasa && python robocasa/scripts/download_kitchen_assets.py
+
+# Copy RoboCasa assets
+cp -r ~/Desktop/robocasa/robocasa/models/assets/* model/robocasa/assets/
+
+# Copy robosuite robot assets (robots, grippers, bases)
+cp -r /path/to/robosuite/robosuite/models/assets/robots model/robocasa/assets/
+cp -r /path/to/robosuite/robosuite/models/assets/grippers model/robocasa/assets/
+cp -r /path/to/robosuite/robosuite/models/assets/bases model/robocasa/assets/
+```
+
+4. **Setup ElevenLabs API Key (for voice commands)**:
+```bash
+cd agent
+cp .env.example .env
+# Edit .env and add your ELEVENLABS_API_KEY
+```
 
 ### Running the Simulator
 
+**macOS (requires mjpython):**
+```bash
+cd robot
+mjpython main.py
+```
+
+**Linux:**
 ```bash
 cd robot
 python main.py
 ```
+
+### Running the Agent UI
+
+```bash
+cd agent
+python3.12 main.py
+```
+
+Open http://localhost:8900 for the web UI with voice commands.
 
 The server will start on `http://0.0.0.0:8800` with:
 - Interactive API documentation at `http://localhost:8800/docs`
