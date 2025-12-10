@@ -43,7 +43,7 @@ def process_actions(action: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             import traceback
             print(f"\n[TRACEBACK]")
             traceback.print_exc()
-    print(f"{"="*60}\n")
+    print("=" * 60 + "\n")
     return RESULT
 
 
@@ -104,12 +104,12 @@ def main() -> None:
     threading.Thread(target=run_simulator, daemon=True).start()
 
     # Display startup information
-    print(f"\n{"="*60}")
+    print("\n" + "=" * 60)
     print(f"MuJoCo Robot Simulator API")
-    print(f"{"="*60}")
+    print("=" * 60)
     print(f"Server: http://{HOST}:{PORT}")
     print(f"API docs: http://{HOST}:{PORT}/docs")
-    print(f"{"="*60}\n")
+    print("=" * 60 + "\n")
 
     # Start FastAPI server (blocking call)
     uvicorn.run(app, host=HOST, port=PORT, log_level="info")
