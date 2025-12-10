@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 
 <head>
     <meta charset="UTF-8">
@@ -89,6 +89,12 @@
             transform: translateY(0);
         }
 
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .examples {
             margin: 20px 0;
             padding: 15px;
@@ -160,18 +166,20 @@
             flex: 1;
         }
 
-        .voice-btn.listening {
+        .voice-btn.recording {
             background: #ff4444;
             animation: pulse 1s infinite;
         }
 
-        @keyframes pulse {
+        .voice-btn.processing {
+            background: #ff9800;
+            animation: pulse 0.5s infinite;
+        }
 
-            0%,
-            100% {
+        @keyframes pulse {
+            0%, 100% {
                 opacity: 1;
             }
-
             50% {
                 opacity: 0.7;
             }
@@ -180,112 +188,259 @@
         .text-btn {
             flex: 2;
         }
+
+        .voice-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .voice-status.active {
+            display: block;
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .voice-status.transcribing {
+            display: block;
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .ai-response {
+            margin-top: 15px;
+            padding: 15px;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-radius: 8px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .ai-response-text {
+            font-size: 1.1em;
+            color: #2e7d32;
+            line-height: 1.5;
+        }
+
+        .audio-indicator {
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .audio-indicator.playing::after {
+            content: "🔊";
+            animation: sound 0.5s infinite;
+        }
+
+        @keyframes sound {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>🤖 LLM Robot Control</h1>
-        <p class="subtitle">Control your robot with natural language (Powered by LLM)</p>
+        <h1>🤖 LLM 로봇 제어</h1>
+        <p class="subtitle">자연어로 로봇을 제어하세요 (ElevenLabs 음성 지원)</p>
 
         <div class="examples">
-            <strong>💡 Example Commands:</strong><br>
-            <span class="example-btn" onclick="setCommand('정사각형으로 움직여줘')">Move in Square</span>
-            <span class="example-btn" onclick="setCommand('원형으로 천천히 돌아줘')">Circular Path</span>
-            <span class="example-btn" onclick="setCommand('삼각형을 그리줘')">Draw Triangle</span>
-            <span class="example-btn" onclick="setCommand('제자리에서 한바퀴 회전해줘')">Rotate in Place</span>
-            <span class="example-btn" onclick="setCommand('앞으로 1미터 움직여줘')">Move Forward</span>
+            <strong>💡 예시 명령어:</strong><br>
+            <span class="example-btn" onclick="setCommand('정사각형으로 움직여줘')">정사각형 이동</span>
+            <span class="example-btn" onclick="setCommand('원형으로 천천히 돌아줘')">원형 경로</span>
+            <span class="example-btn" onclick="setCommand('삼각형을 그려줘')">삼각형 그리기</span>
+            <span class="example-btn" onclick="setCommand('제자리에서 한바퀴 회전해줘')">제자리 회전</span>
+            <span class="example-btn" onclick="setCommand('앞으로 1미터 움직여줘')">앞으로 이동</span>
         </div>
 
         <div class="input-group">
-            <label for="command">Enter Command:</label>
-            <input type="text" id="command" placeholder="e.g., Move in a square" />
+            <label for="command">명령어 입력:</label>
+            <input type="text" id="command" placeholder="예: 정사각형으로 움직여줘" />
         </div>
 
         <div class="button-group">
-            <button class="voice-btn" id="voiceBtn" onclick="startVoiceRecognition()">🎤 Voice Command</button>
-            <button class="text-btn" onclick="sendCommand()">🚀 Execute Text</button>
+            <button class="voice-btn" id="voiceBtn" onclick="toggleVoiceRecording()">🎤 음성 명령</button>
+            <button class="text-btn" id="textBtn" onclick="sendCommand()">🚀 텍스트 실행</button>
         </div>
+
+        <div class="voice-status" id="voiceStatus"></div>
 
         <div id="response" style="display:none;" class="response">
             <div id="status"></div>
             <div id="userCommand"></div>
-            <strong>Generated Code:</strong>
+            
+            <div id="aiResponseSection" class="ai-response" style="display:none;">
+                <strong>🤖 AI 응답:</strong>
+                <span class="audio-indicator" id="audioIndicator"></span>
+                <p class="ai-response-text" id="aiResponseText"></p>
+            </div>
+            
+            <strong>생성된 코드:</strong>
             <pre id="generatedCode"></pre>
         </div>
     </div>
 
     <script>
-        // Initialize Web Speech API (voice recognition feature)
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let recognition = null;  // Speech recognition object
-        let isListening = false;  // Whether currently listening
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
 
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
-            recognition.lang = 'en-US';
-            recognition.continuous = false;
-            recognition.interimResults = false;
-
-            recognition.onstart = function () {
-                isListening = true;
-                const voiceBtn = document.getElementById('voiceBtn');
-                voiceBtn.classList.add('listening');
-                voiceBtn.textContent = '🎤 Listening...';
-            };
-
-            recognition.onresult = function (event) {
-                const transcript = event.results[0][0].transcript;
-                document.getElementById('command').value = transcript;
-                // Automatically execute voice recognition result
-                sendCommand();
-            };
-
-            recognition.onerror = function (event) {
-                console.error('Voice recognition error:', event.error);
-                alert('Voice recognition error: ' + event.error);
-                resetVoiceButton();
-            };
-
-            recognition.onend = function () {
-                resetVoiceButton();
-            };
+        // Start/Stop voice recording
+        async function toggleVoiceRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                await startRecording();
+            }
         }
 
-        function resetVoiceButton() {
-            isListening = false;
-            const voiceBtn = document.getElementById('voiceBtn');
-            voiceBtn.classList.remove('listening');
-            voiceBtn.textContent = '🎤 Voice Command';
-        }
-
-        function startVoiceRecognition() {
-            if (!recognition) {
-                alert('This browser does not support voice recognition. Please use Chrome.');
-                return;
-            }
-
-            if (isListening) {
-                recognition.stop();
-                return;
-            }
-
+        async function startRecording() {
             try {
-                recognition.start();
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await transcribeAudio(audioBlob);
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                updateVoiceButton('recording');
+                showVoiceStatus('🎤 녹음 중... 다시 클릭하면 종료됩니다', 'active');
+
             } catch (error) {
-                console.error('Voice recognition start error:', error);
-                alert('Cannot start voice recognition: ' + error.message);
+                console.error('마이크 접근 오류:', error);
+                alert('마이크에 접근할 수 없습니다. 브라우저 권한을 확인해주세요.');
             }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                updateVoiceButton('processing');
+                showVoiceStatus('🔄 음성을 텍스트로 변환 중...', 'transcribing');
+            }
+        }
+
+        async function transcribeAudio(audioBlob) {
+            try {
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.webm');
+
+                const response = await fetch('/stt', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    document.getElementById('command').value = data.text;
+                    hideVoiceStatus();
+                    updateVoiceButton('default');
+                    // Automatically execute the transcribed command
+                    await sendCommand();
+                } else {
+                    throw new Error(data.message || '음성 인식 실패');
+                }
+            } catch (error) {
+                console.error('STT 오류:', error);
+                alert('음성 인식 오류: ' + error.message);
+                hideVoiceStatus();
+                updateVoiceButton('default');
+            }
+        }
+
+        function updateVoiceButton(state) {
+            const btn = document.getElementById('voiceBtn');
+            btn.classList.remove('recording', 'processing');
+            
+            switch (state) {
+                case 'recording':
+                    btn.classList.add('recording');
+                    btn.textContent = '🛑 녹음 중지';
+                    break;
+                case 'processing':
+                    btn.classList.add('processing');
+                    btn.textContent = '⏳ 처리 중...';
+                    btn.disabled = true;
+                    break;
+                default:
+                    btn.textContent = '🎤 음성 명령';
+                    btn.disabled = false;
+            }
+        }
+
+        function showVoiceStatus(message, className) {
+            const status = document.getElementById('voiceStatus');
+            status.textContent = message;
+            status.className = 'voice-status ' + className;
+        }
+
+        function hideVoiceStatus() {
+            document.getElementById('voiceStatus').className = 'voice-status';
         }
 
         function setCommand(cmd) {
             document.getElementById('command').value = cmd;
         }
 
+        async function playTTS(text) {
+            try {
+                const indicator = document.getElementById('audioIndicator');
+                indicator.classList.add('playing');
+
+                const response = await fetch('/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    // Decode base64 audio and play
+                    const audioBytes = atob(data.audio);
+                    const arrayBuffer = new ArrayBuffer(audioBytes.length);
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    for (let i = 0; i < audioBytes.length; i++) {
+                        uint8Array[i] = audioBytes.charCodeAt(i);
+                    }
+                    const audioBlob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    
+                    audio.onended = () => {
+                        indicator.classList.remove('playing');
+                        URL.revokeObjectURL(audioUrl);
+                    };
+                    
+                    audio.play();
+                } else {
+                    throw new Error(data.message || 'TTS 실패');
+                }
+            } catch (error) {
+                console.error('TTS 오류:', error);
+                document.getElementById('audioIndicator').classList.remove('playing');
+            }
+        }
+
         async function sendCommand() {
             const command = document.getElementById('command').value;
             if (!command.trim()) {
-                alert('Please enter a command!');
+                alert('명령어를 입력해주세요!');
                 return;
             }
 
@@ -293,12 +448,19 @@
             const statusDiv = document.getElementById('status');
             const userCommandDiv = document.getElementById('userCommand');
             const codeDiv = document.getElementById('generatedCode');
+            const aiResponseSection = document.getElementById('aiResponseSection');
+            const aiResponseText = document.getElementById('aiResponseText');
+
+            // Disable buttons during processing
+            document.getElementById('textBtn').disabled = true;
+            document.getElementById('voiceBtn').disabled = true;
 
             // Show loading state
             responseDiv.style.display = 'block';
-            statusDiv.innerHTML = '<span class="status">⏳ Processing...</span>';
+            statusDiv.innerHTML = '<span class="status">⏳ 처리 중...</span>';
             userCommandDiv.textContent = '';
             codeDiv.textContent = '';
+            aiResponseSection.style.display = 'none';
 
             try {
                 const response = await fetch('/llm_command', {
@@ -312,17 +474,45 @@
                 const data = await response.json();
 
                 if (data.status === 'success') {
-                    statusDiv.innerHTML = '<span class="status success">✅ Success!</span>';
-                    userCommandDiv.innerHTML = `<strong>Command:</strong> ${data.user_command}`;
+                    statusDiv.innerHTML = '<span class="status success">✅ 성공!</span>';
+                    userCommandDiv.innerHTML = `<strong>명령어:</strong> ${data.user_command}`;
                     codeDiv.textContent = data.generated_code;
+
+                    // Generate AI response message
+                    const aiMessage = generateAIResponse(data.user_command);
+                    aiResponseText.textContent = aiMessage;
+                    aiResponseSection.style.display = 'block';
+
+                    // Play TTS for the AI response
+                    await playTTS(aiMessage);
+
                 } else {
-                    statusDiv.innerHTML = '<span class="status error">❌ Error</span>';
-                    userCommandDiv.innerHTML = `<strong>Error:</strong> ${data.message || data.error}`;
+                    statusDiv.innerHTML = '<span class="status error">❌ 오류</span>';
+                    userCommandDiv.innerHTML = `<strong>오류:</strong> ${data.message || data.error}`;
+                    
+                    // Play error message
+                    await playTTS('죄송합니다. 명령을 처리하는 중에 오류가 발생했습니다.');
                 }
             } catch (error) {
-                statusDiv.innerHTML = '<span class="status error">❌ Connection Error</span>';
-                userCommandDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+                statusDiv.innerHTML = '<span class="status error">❌ 연결 오류</span>';
+                userCommandDiv.innerHTML = `<strong>오류:</strong> ${error.message}`;
+                
+                await playTTS('서버 연결에 실패했습니다. 다시 시도해주세요.');
+            } finally {
+                // Re-enable buttons
+                document.getElementById('textBtn').disabled = false;
+                document.getElementById('voiceBtn').disabled = false;
             }
+        }
+
+        function generateAIResponse(command) {
+            // Generate a natural Korean response based on the command
+            const responses = [
+                `네, "${command}" 명령을 실행했습니다. 로봇이 움직이고 있습니다.`,
+                `알겠습니다. "${command}" 작업을 완료했습니다.`,
+                `"${command}" 명령을 수행했습니다. 결과를 확인해주세요.`,
+            ];
+            return responses[Math.floor(Math.random() * responses.length)];
         }
 
         // Send command by pressing Enter key

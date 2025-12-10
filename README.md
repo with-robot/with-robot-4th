@@ -7,48 +7,88 @@ A REST API-based control system for Panda-Omron mobile manipulator simulation us
 - **Real-time Physics Simulation**: High-fidelity MuJoCo simulation with 3D visualization
 - **REST API Control**: Send Python code via HTTP to control the robot
 - **Sandboxed Execution**: Safe code execution environment with limited access
-- **Mobile Base & Arm Control**: Holonomic drive system + 7-DOF Panda arm
-- **Path Planning**: A* algorithm for collision-free navigation with obstacle avoidance
-- **Grid Map**: Binary occupancy grid map for environment perception
-- **Gripper Control**: Width-based gripper control for grasping objects
-- **End Effector Control**: IK-based position control in world frame
-- **Object Perception**: Query positions and orientations of all scene objects
-- **PID Controller**: Mobile base with integral term for steady-state error elimination
-- **Synchronous Processing**: Blocking HTTP requests ensure action completion
-- **Adaptive Convergence**: Smart waiting with position + velocity stability checks
+- **Mobile Base Control**: Holonomic drive system with independent x, y, theta control
+- **PD Controller**: Automatic position tracking with configurable gains
+- **Asynchronous Processing**: Non-blocking action queue for smooth operation
+- **Korean Voice Commands**: ElevenLabs STT/TTS for natural language robot control
+- **LLM Agent UI**: Web-based interface for natural language commands
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.12+
 - MuJoCo physics engine support
+- macOS: `mjpython` required for MuJoCo viewer
 
 ### Installation
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/ChloePark85/with-robot-4th.git
 cd with-robot-4th
 ```
 
 2. Install dependencies:
 ```bash
 pip install -r requirements.txt
+pip install elevenlabs langgraph langchain-openai
 ```
 
 Dependencies:
 - FastAPI 0.121.1
 - MuJoCo 3.3.7
 - uvicorn 0.38.0
-- scipy >= 1.10.0
+- elevenlabs (for voice commands)
+- langgraph, langchain-openai (for LLM agent)
+
+3. **Download Assets (Required, ~5GB)**:
+
+The simulation requires mesh and texture assets from RoboCasa and robosuite projects.
+
+```bash
+# Clone RoboCasa and download assets
+git clone --depth 1 https://github.com/robocasa/robocasa.git /tmp/robocasa
+cd /tmp/robocasa && python robocasa/scripts/download_kitchen_assets.py
+
+# Copy RoboCasa assets
+cp -r ~/Desktop/robocasa/robocasa/models/assets/* model/robocasa/assets/
+
+# Copy robosuite robot assets (robots, grippers, bases)
+cp -r /path/to/robosuite/robosuite/models/assets/robots model/robocasa/assets/
+cp -r /path/to/robosuite/robosuite/models/assets/grippers model/robocasa/assets/
+cp -r /path/to/robosuite/robosuite/models/assets/bases model/robocasa/assets/
+```
+
+4. **Setup ElevenLabs API Key (for voice commands)**:
+```bash
+cd agent
+cp .env.example .env
+# Edit .env and add your ELEVENLABS_API_KEY
+```
 
 ### Running the Simulator
 
+**macOS (requires mjpython):**
+```bash
+cd robot
+mjpython main.py
+```
+
+**Linux:**
 ```bash
 cd robot
 python main.py
 ```
+
+### Running the Agent UI
+
+```bash
+cd agent
+python3.12 main.py
+```
+
+Open http://localhost:8900 for the web UI with voice commands.
 
 The server will start on `http://0.0.0.0:8800` with:
 - Interactive API documentation at `http://localhost:8800/docs`
@@ -81,7 +121,7 @@ Content-Type: application/json
   "action": {
     "type": "run_code",
     "payload": {
-      "code": "set_mobile_target_joint([0, 0, PI])"
+      "code": "set_target_position(0, 0, PI)"
     }
   }
 }
@@ -89,294 +129,62 @@ Content-Type: application/json
 
 ### Example Code
 
-#### Mobile Base Control
-
 Move robot to position (x=0, y=0, theta=π):
 ```python
-set_mobile_target_joint([0, 0, PI])
+set_target_position(0, 0, PI)
 ```
 
-Move robot with verbose output and custom timeout:
+Move robot to position (x=-0.5, y=0, theta=π) and wait until reached:
 ```python
-set_mobile_target_joint([2.0, 1.0, PI/2], timeout=5.0, verbose=True)
+set_target_position(-0.5, 0, PI, wait=True)
 ```
 
-Move robot in square pattern:
+Move robot in sequence:
 ```python
-positions = [
-    [1.0, 0.0, PI/2],    # Forward, turn left
-    [1.0, 1.0, PI],      # Left, turn left
-    [0.0, 1.0, -PI/2],   # Backward, turn left
-    [0.0, 0.0, 0.0]      # Right, face forward
-]
-
-for pos in positions:
-    set_mobile_target_joint(pos)
-```
-
-#### Path Planning Example
-
-Plan and execute collision-free path:
-```python
-# Plan path to target location
-path = plan_mobile_path([2.0, -3.0])
-if path is not None:
-    print(f"Found path with {len(path)} waypoints")
-    # Execute path by visiting each waypoint
-    for waypoint in path:
-        set_mobile_target_joint(waypoint, verbose=True)
-else:
-    print("No path found to target")
-```
-
-Get environment grid map:
-```python
-# Get binary occupancy grid (0=free, 1=occupied)
-grid = get_grid_map()
-print(f"Grid size: {len(grid)} x {len(grid[0])}")
-
-# Check if a cell is free
-if grid[50][50] == 0:
-    print("Cell is navigable")
-```
-
-#### Arm Control
-
-Move arm to home configuration:
-```python
-home = [0, -0.785, 0, -2.356, 0, 1.571, 0.785]
-set_arm_target_joint(home)
-```
-
-Move arm with verbose monitoring:
-```python
-reach_config = [0, 0.2, 0, -1.5, 0, 1.7, 0.785]
-set_arm_target_joint(reach_config, verbose=True)
-```
-
-#### End Effector Control (World Frame)
-
-Move end effector to absolute world position:
-```python
-set_ee_target_position([1.5, -3.0, 1.2])
-```
-
-Get current end effector pose:
-```python
-# Returns tuple: (position, orientation) in world frame
-pos, ori = get_ee_position()
-print(pos)  # [x, y, z] in meters
-print(ori)  # [roll, pitch, yaw] in radians
-```
-
-Pick and place pattern with gripper:
-```python
-# Get object position
-objects = get_object_positions()
-if 'object_apple_0' in objects:
-    apple_pos = objects['object_apple_0']['pos']
-    
-    # Open gripper
-    set_target_gripper_width(0.08)
-    
-    # Move above the apple
-    approach_pos = [apple_pos[0], apple_pos[1], apple_pos[2] + 0.2]
-    set_ee_target_position(approach_pos)
-    
-    # Lower to grasp height
-    grasp_pos = [apple_pos[0], apple_pos[1], apple_pos[2] + 0.05]
-    set_ee_target_position(grasp_pos)
-    
-    # Close gripper to grasp
-    set_target_gripper_width(0.02)
-    
-    # Lift object
-    lift_pos = [apple_pos[0], apple_pos[1], apple_pos[2] + 0.3]
-    set_ee_target_position(lift_pos)
-    
-    # Move to placement location
-    place_pos = [2.5, -2.8, 1.0]
-    set_ee_target_position(place_pos)
-    
-    # Open gripper to release
-    set_target_gripper_width(0.08)
-```
-
-#### Object Perception
-
-Get all object positions:
-```python
-# Returns dictionary mapping object names to their properties
-objects = get_object_positions()
-
-for name, obj in objects.items():
-    print(f"{name}: pos={obj['pos']}, ori={obj['ori']}")
-
-# Access specific object
-if 'object_banana_1' in objects:
-    banana = objects['object_banana_1']
-    target = [banana['pos'][0], banana['pos'][1], banana['pos'][2] + 0.1]
-    set_ee_target_position(target)
-```
-
-#### Combined Control
-
-Navigate and reach:
-```python
-# Move base to location
-set_mobile_target_joint([1.5, 0.5, 0])
-
-# Extend arm to reach object
-set_arm_target_joint([0, 0.3, 0, -1.2, 0, 1.5, 0.785])
-```
-
-Get current robot state:
-```python
-# Get mobile base position [x, y, theta]
-base_pos = get_mobile_joint_position()
-
-# Get arm joint angles [j1~j7]
-arm_pos = get_arm_joint_position()
-
-# Get end effector pose
-pos, ori = get_ee_position()
+set_target_position(1.0, 0, 0)
+set_target_position(1.0, 1.0, PI/2)
+set_target_position(0, 1.0, PI)
 ```
 
 ### Available Functions in Sandbox
 
-#### Mobile Base Control
-- `get_mobile_joint_position()`
-  - **Returns**: List [x, y, theta] - current base position in meters and radians
-
-- `set_mobile_target_joint(mobile_target_position, timeout=10.0, verbose=False)`
-  - `mobile_target_position`: List [x, y, theta] in meters and radians
-  - `timeout`: Maximum wait time in seconds (default: 10.0, set 0 for non-blocking)
-  - `verbose`: Print convergence progress (default: False)
-  - **Convergence**: Position error < 0.1m, velocity < 0.05 m/s, stable for 5 frames
-  - **Returns**: True if converged, False if timeout
-
-- `plan_mobile_path(target_pos, simplify=True)`
-  - `target_pos`: Target position [x, y] in world coordinates
-  - `simplify`: Whether to simplify path (default: True)
-  - **Returns**: List of waypoints [(x, y, theta), ...] or None if unreachable
-  - **Uses**: A* pathfinding with obstacle inflation and path simplification
-
-- `follow_mobile_path(path_world, timeout_per_waypoint=30.0, verbose=False)`
-  - `path_world`: List of waypoints [(x, y, theta), ...] in world coordinates
-  - `timeout_per_waypoint`: Maximum wait time per waypoint in seconds (default: 30.0)
-  - `verbose`: Print progress information (default: False)
-  - **Returns**: True if all waypoints reached, False if any timeout
-  - **Note**: Sequentially visits each waypoint with convergence waiting
-
-- `get_grid_map()`
-  - **Returns**: 2D binary occupancy grid (0=free, 1=occupied)
-  - Grid cell size: 0.1m, includes all static obstacles
-
-#### Arm Control (Joint Space)
-- `get_arm_joint_position()`
-  - **Returns**: List [j1~j7] - current joint angles in radians
-
-- `set_arm_target_joint(arm_target_position, timeout=10.0, verbose=False)`
-  - `arm_target_position`: List [j1, j2, j3, j4, j5, j6, j7] in radians
-  - `timeout`: Maximum wait time in seconds (default: 10.0, set 0 for non-blocking)
-  - `verbose`: Print convergence progress (default: False)
-  - **Convergence**: Joint error < 0.1 rad, velocity < 0.1 rad/s, stable for 5 frames
-  - **Returns**: True if converged, False if timeout
-
-#### End Effector Control (World Frame)
-- `get_ee_position()`
-  - **Returns**: Tuple (position, orientation) where position=[x,y,z] in meters (world frame), orientation=[roll,pitch,yaw] in radians (world frame)
-
-- `set_ee_target_position(target_pos, timeout=10.0, verbose=False)`
-  - `target_pos`: Target position [x, y, z] in meters (world frame)
-  - `timeout`: Maximum wait time in seconds (default: 10.0, set 0 for non-blocking)
-  - `verbose`: Print convergence progress (default: False)
-  - **Note**: Position only - no orientation control, uses IK solver
-  - **Returns**: True if IK succeeded and converged, False if IK failed or timeout
-
-#### Gripper Control
-- `get_gripper_width()`
-  - **Returns**: Float - current gripper width in meters
-
-- `set_target_gripper_width(target_width, timeout=10.0, verbose=False)`
-  - `target_width`: Target gripper width in meters (0.0=closed, 0.08=fully open)
-  - `timeout`: Maximum wait time in seconds (default: 10.0, set 0 for non-blocking)
-  - `verbose`: Print convergence progress (default: False)
-  - **Convergence**: Width error < 0.01m, velocity < 0.01 m/s, stable for 5 frames
-  - **Note**: Includes 1 second stabilization delay after convergence
-  - **Returns**: True if converged, False if timeout
-
-#### Pick & Place Operations
-- `pick_object(object_pos, approach_height=0.1, lift_height=0.2, return_to_home=True, timeout=10.0, verbose=False)`
-  - `object_pos`: Object position [x, y, z] in world coordinates
-  - `approach_height`: Height above object to approach (default: 0.1m)
-  - `lift_height`: Height to lift object (default: 0.2m)
-  - `return_to_home`: Return arm to home after picking (default: True)
-  - `timeout`: Maximum wait time per motion (default: 10.0s)
-  - **Returns**: True if pick succeeded, False if any step failed
-  - **Sequence**: Open gripper → Approach → Lower → Grasp → Lift → Home (optional)
-
-- `place_object(place_pos, approach_height=0.2, retract_height=0.3, return_to_home=True, timeout=10.0, verbose=False)`
-  - `place_pos`: Target placement position [x, y, z] in world coordinates
-  - `approach_height`: Height above placement to approach (default: 0.2m)
-  - `retract_height`: Height to retract after release (default: 0.3m)
-  - `return_to_home`: Return arm to home after placing (default: True)
-  - `timeout`: Maximum wait time per motion (default: 10.0s)
-  - **Returns**: True if place succeeded, False if any step failed
-  - **Sequence**: Approach → Release → Retract → Home (optional)
-
-#### Object Perception
-- `get_object_positions()`
-  - **Returns**: Dictionary mapping object names to their properties
-    - Key: object name (str)
-    - Value: dict with 'id' (int), 'pos' (list[float]), 'ori' (list[float])
-  - All positions and orientations are in world frame
-
-#### Utilities
+- `set_target_position(x, y, theta, wait=True)`: Set robot target position
+  - `x`: Target x position in meters
+  - `y`: Target y position in meters
+  - `theta`: Target orientation in radians
+  - `wait`: Block until position reached (default: True)
 - `print()`: Print debug messages
-- `range()`, `float()`, `time`: Standard Python builtins
+- `range()`, `float()`, `time()`: Standard Python builtins
 - `PI`: Constant for π (3.14159...)
-- `RESULT`: Dictionary for storing return values from user code
-
-For complete API documentation, see [robot/code_knowledge.md](robot/code_knowledge.md)
 
 ## Project Structure
 
 ```
-with-robot-4th-lab/
+with-robot-4th/
 ├── robot/
-│   ├── main.py               # FastAPI server and threading orchestration
-│   ├── simulator.py          # MuJoCo simulator with PID controller
-│   ├── code_repository.py    # Sandboxed code execution layer
-│   ├── code_knowledge.md     # Mobile manipulator API documentation (LLM-ready)
-│   ├── ellmer_knowledge.md   # Kinova robot arm reference examples
-│   └── client.ipynb          # Jupyter notebook for testing API
+│   ├── main.py              # FastAPI server and threading orchestration
+│   ├── simulator.py         # MuJoCo simulator with PD controller
+│   ├── code_repository.py   # Sandboxed code execution layer
+│   └── code_knowledge.md    # Robot control API documentation
 ├── model/
-│   └── robocasa/             # From RoboCasa project
-│       ├── site.xml          # Main scene file (entry point)
-│       ├── panda_omron.xml   # Robot model definition
-│       ├── fixtures.xml      # Kitchen fixtures (fridge, oven, etc.)
-│       ├── geom_objects.xml  # Temporary geom objects (cubes, etc.)
-│       ├── objects/          # Object definitions (fruits, utensils, etc.)
-│       ├── assets/           # Meshes and textures
-│       └── backup/           # Backup files
-├── requirements.txt          # Python dependencies
-└── README.md                 # This file
+│   └── robocasa/
+│       ├── panda_omron.xml  # Robot model (default)
+│       └── assets/          # Meshes, textures, and scene objects
+├── requirements.txt         # Python dependencies
+├── CLAUDE.md               # Development documentation
+└── README.md               # This file
 ```
 
 ## Architecture
 
-The system uses a two-thread architecture:
+The system uses a three-layer architecture:
 
-1. **Main Thread**: FastAPI uvicorn server handling HTTP requests with synchronous code execution
-2. **Simulator Thread**: MuJoCo physics simulation with 3D rendering
-
-**Execution Model**: Actions execute synchronously - each HTTP request blocks until code execution completes.
-
-**Component Layers**:
-1. **simulator.py**: Core MuJoCo physics simulation with PID controller (mobile base), position controller (arm), and IK solver (end effector)
+1. **simulator.py**: Core MuJoCo physics simulation with PD controller
 2. **code_repository.py**: Sandboxed Python execution environment
-3. **main.py**: FastAPI server orchestrating simulator and action execution
+3. **main.py**: FastAPI server with three concurrent threads:
+   - Main thread: HTTP request handling
+   - Simulator thread: Physics simulation and 3D rendering
+   - Action processor thread: Asynchronous code execution
 
 ## Configuration
 
@@ -385,15 +193,13 @@ The system uses a two-thread architecture:
 Edit `robot/simulator.py` to adjust:
 
 ```python
-# PID controller gains for mobile base
-MOBILE_KP = np.array([4.0, 4.0, 2.0])       # Position gains [x, y, theta]
-MOBILE_KI = np.array([0.3, 0.3, 0.15])      # Integral gains
-MOBILE_I_LIMIT = np.array([0.2, 0.2, 0.1])  # Integral limits
-MOBILE_KD = np.array([0.5, 0.5, 0.3])       # Derivative gains
+# PD controller gains
+KP = np.array([2.0, 2.0, 1.5])  # Position gains [x, y, theta]
+KD = np.array([0.5, 0.5, 0.3])  # Derivative gains [x, y, theta]
 
 # Camera view settings
-CAM_LOOKAT = [-0.8, -0.8, 0.8]
-CAM_DISTANCE = 7.5
+CAM_LOOKAT = [2.15, -0.8, 0.8]
+CAM_DISTANCE = 5.0
 CAM_AZIMUTH = 135
 CAM_ELEVATION = -25
 ```
@@ -409,71 +215,23 @@ PORT = 8800       # API server port
 
 ### Robot Model
 
-The robot model XML and scene assets are from the [RoboCasa](https://github.com/robocasa/robocasa) project. The main scene file is loaded in `robot/simulator.py`:
+Change the MuJoCo model in `robot/simulator.py`:
 
 ```python
-# Line 80
-xml_path = "../model/robocasa/site.xml"  # Main scene entry point
+# Line 40
+xml_path = "../model/robocasa/panda_omron.xml"  # Default
 ```
-
-The scene is organized as:
-- `site.xml`: Main scene file that includes robot, fixtures, and objects
-- `panda_omron.xml`: Robot model definition (Panda arm + Omron mobile base)
-- `fixtures.xml`: Kitchen environment (fridge, oven, sink, counters, etc.)
-- `objects/`: Individual object definitions (fruits, utensils, bowls, etc.)
 
 ## Technical Details
 
 - **Physics Engine**: MuJoCo 3.3.7
-- **Control System**:
-  - PID controller for mobile base velocity tracking
-  - Position control for 7-DOF Panda arm
-  - IK solver (damped least squares) for end effector position control
-- **Coordinate System**: All positions and orientations in world frame
-- **Convergence Logic**:
-  - Position + velocity stability checks
-  - Adaptive sleep intervals (0.02s-0.1s based on error)
-  - Configurable timeout with verbose monitoring
+- **Control System**: PD controller for mobile base position tracking
 - **Actuators**:
   - Position control (kp=1000, kv=100) for Panda arm
   - Velocity control (kv=1000/1500) for mobile base
 - **Sensors**: Force/torque sensors on gripper end-effector
-- **Threading**: Two daemon threads for clean shutdown
+- **Threading**: Daemon threads for clean shutdown
 - **Safety**: Sandboxed code execution with restricted builtins
-
-### Convergence Criteria
-
-**Mobile Base:**
-- Position error norm < 0.1m (theta weighted at 50%)
-- Velocity norm < 0.05 m/s or rad/s
-- Stability: 5 consecutive frames within threshold
-
-**Arm (Joint Space):**
-- Joint position error norm < 0.1 radians
-- Joint velocity norm < 0.1 rad/s
-- Stability: 5 consecutive frames within threshold
-
-**End Effector (IK-based Position Control):**
-- Joint position error norm < 0.1 radians
-- Joint velocity norm < 0.1 rad/s
-- Stability: 5 consecutive frames within threshold
-- IK solver: Damped least squares for position-only targeting
-- No orientation control
-
-## Current Limitations
-
-- **No orientation control**: Cannot command end effector orientation (roll, pitch, yaw)
-- **Synchronous execution only**: Cannot run multiple actions concurrently
-- **Read-only object perception**: Can read object positions but cannot manipulate them directly
-
-## Recent Enhancements
-
-- **Gripper control**: Width-based gripper control for grasping and releasing objects
-- **IK solver**: Damped least squares IK for position-only end effector control
-- **World frame control**: All positions in consistent world coordinate frame
-- **Object perception**: Can query positions and orientations of all scene objects
-
-See [CLAUDE.md](CLAUDE.md) for development guidance on adding features.
 
 ## License
 
@@ -485,7 +243,6 @@ This is a research/educational project. For questions or contributions, please o
 
 ## Acknowledgments
 
-- **MuJoCo Physics Engine**: Physics simulation by DeepMind
-- **Panda Robot Model**: 7-DOF manipulator by Franka Emika
-- **RoboCasa Project**: Robot model XML (`panda_omron.xml`) and kitchen scene assets (meshes, textures, objects) from [RoboCasa](https://github.com/robocasa/robocasa)
-  - Provides realistic kitchen environment for mobile manipulation research
+- MuJoCo physics engine by DeepMind
+- Panda robot model by Franka Emika
+- Kitchen assets from RoboCasa project
