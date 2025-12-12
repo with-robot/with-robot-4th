@@ -97,7 +97,7 @@
 
 | Optimization | Demo |
 | :---: | :---: |
-| ![planning_path_optimization](resources/images/planning_path_optimization.png) | ![planning_path_demo](resources/images/planning_path_demo.gif) |
+| <img src="resources/images/planning_path_optimization.png" width="250"> | ![planning_path_demo](resources/images/planning_path_demo.gif) |
 
 ---
 
