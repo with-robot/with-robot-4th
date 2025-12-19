@@ -1,3 +1,4 @@
+elevenlabs==2.26.1
 fastapi==0.121.1
 langgraph==1.0.4
 langchain==1.1.2
@@ -7,7 +8,8 @@ matplotlib==3.10.7
 mujoco==3.3.7
 openai==2.9.0
 pandas==2.3.3
-pillow==12.0.0
+pillow==11.3.0
 python-dotenv==1.2.1
+python-multipart==0.0.20
 scipy==1.16.3
 uvicorn==0.38.0
